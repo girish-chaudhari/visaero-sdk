@@ -10,6 +10,7 @@ import { Skeleton } from "../ui/skeleton";
 import ApplicationDetails from "./ApplicationDetails";
 import { VisaForm } from "./VisaForm";
 import DocumentsCard from "./DocumentsCard";
+import { Form } from "../ui/form";
 
 type Props = {
   formData: any;
@@ -18,7 +19,12 @@ type Props = {
 
 const VisaReviewLayout: React.FC<Props> = ({ formData, dataDictionary }) => {
   const methods = useForm();
-  const onSubmit = (data: any) => console.log(data);
+
+
+  const onSubmit = (data: any) => {
+    console.log("data >>", data);
+    alert(JSON.stringify(data))
+  }
 
   const [activeApplicant, setactiveApplicant] = useState<number | string>("");
 
@@ -77,7 +83,7 @@ const VisaReviewLayout: React.FC<Props> = ({ formData, dataDictionary }) => {
   };
 
   return (
-    <FormProvider {...methods}>
+    <Form {...methods}>
       <form onSubmit={methods.handleSubmit(onSubmit)}>
         <div className="h-screen p-3 pb-0 flex flex-col overflow-hidden">
           {/* Application details */}
@@ -88,7 +94,7 @@ const VisaReviewLayout: React.FC<Props> = ({ formData, dataDictionary }) => {
           <div className="mb-3">
             <RenderApplicants />
           </div>
-          <div className="flex gap-3 flex-1 mb-3">
+          <div className="flex gap-3 h-0 flex-1 mb-3">
             <div className="overflow-hidden w-1/3 h-full">
               <DocumentsCard />
             </div>
@@ -104,7 +110,7 @@ const VisaReviewLayout: React.FC<Props> = ({ formData, dataDictionary }) => {
           </Card>
         </div>
       </form>
-    </FormProvider>
+    </Form>
   );
 };
 

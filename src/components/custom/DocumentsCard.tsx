@@ -1,4 +1,6 @@
-import { ScrollArea } from "@radix-ui/react-scroll-area";
+"use client"
+
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/card";
 
@@ -14,31 +16,18 @@ const DocumentsCard = (props: Props) => {
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-4">
-        <ScrollArea className="h-96 overflow-y-auto">
-          <div className=" pb-0 space-y-4">
-            <div className="bg-muted flex items-center justify-center rounded-lg  h-44">
-              <p>Image 1</p>
-            </div>
-            <div className="bg-muted flex items-center justify-center rounded-lg  h-44">
-              <p>Image 2</p>
-            </div>
-            <div className="bg-muted flex items-center justify-center rounded-lg  h-44">
-              <p>Image 2</p>
-            </div>
-            <div className="bg-muted flex items-center justify-center rounded-lg  h-44">
-              <p>Image 2</p>
-            </div>
-            <div className="bg-muted flex items-center justify-center rounded-lg  h-44">
-              <p>Image 2</p>
-            </div>
-            <div className="bg-muted flex items-center justify-center rounded-lg  h-44">
-              <p>Image 2</p>
-            </div>
-            <div className="bg-muted flex items-center justify-center rounded-lg  h-44">
-              <p>Image 2</p>
-            </div>
-           </div>
+      <CardContent className="h-full px-0 ps-2 pb-24">
+          <ScrollArea className="h-full">
+          <div className="p-4 pb-0 space-y-4">
+            {Array.from({length: 5}).fill("").map((_, i) => (
+              <div
+                key={i}
+                className="bg-muted flex items-center justify-center rounded-lg h-32"
+              >
+                <p>Image {i}</p>
+              </div>
+            ))}
+          </div>
         </ScrollArea>
       </CardContent>
     </Card>
