@@ -20,11 +20,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { format, isValid, parse } from "date-fns";
-import { enGB } from 'date-fns/locale';
- 
+import { format, isAfter, isBefore, isValid, parse } from "date-fns";
+
 import { CalendarIcon } from "lucide-react";
-import React, { memo, useState } from "react";
+import React, { memo, useMemo, useState } from "react";
+import AutoComplete, { type Option } from "../ui/autocomplete";
+
+import AutoSelect from "../ui/autoselect";
 import { Calendar } from "../ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import {
@@ -39,6 +41,7 @@ interface Props {
   formData: any;
   dataDictionary: any;
 }
+type WhenType = "before" | "after" | string | undefined;
 
 interface Validations {
   mandatory?: boolean;
@@ -47,6 +50,7 @@ interface Validations {
   read_only?: boolean;
   isDigit?: boolean;
   display?: boolean;
+  when?: WhenType;
 }
 
 interface Field {
@@ -72,10 +76,10 @@ export function VisaForm(props: Props) {
         return <SubGroup field={field} key={ind} parentName={group_name} />;
       case "textField":
         return <InputField field={field} key={ind} parentName={group_name} />;
-      // case "dropdown":
-      //   return (
-      //     <DropDownField field={field} key={ind} parentName={group_name} />
-      //   );
+      case "dropdown":
+        return (
+          <DropDownField field={field} key={ind} parentName={group_name} />
+        );
       case "dateControl":
         return (
           <DatePickerField field={field} key={ind} parentName={group_name} />
@@ -185,19 +189,27 @@ const InputField: React.FC<FieldRenderProps> = ({ field, parentName }) => {
     />
   );
 };
-const DropDownField: React.FC<FieldRenderProps> = memo(
+const AutoCompleteField: React.FC<FieldRenderProps> = memo(
   ({ field, parentName }) => {
     const form = useFormContext(); // retrieve all hook methods
     const { name, label, type, validations, value, options } = field;
     const isLoading = form.formState.isLoading;
 
+    const allOptions: Option[] | undefined = useMemo(() => {
+      return options?.map((x: string) => ({ label: x, value: x }));
+    }, []);
+
     // console.log("value", value, "options >>", options);
+
+    const fieldName: string = `${parentName}-${name}`;
+
+    // const selectedValue: Option | undefined = allOptions?.find((x) => x === form.formState.va));
 
     return (
       <FormField
         control={form.control}
-        name={`${parentName}-${name}`}
-        disabled={isLoading || !!validations?.mandatory}
+        name={fieldName}
+        // disabled={!!validations?.mandatory || isLoading }
         rules={{
           required: !!validations?.mandatory && label + " is required",
           minLength: validations?.min_length,
@@ -211,6 +223,16 @@ const DropDownField: React.FC<FieldRenderProps> = memo(
                 <span className="text-red-500">*</span>
               )}
             </FormLabel>
+            {/*  @ts-expect-error */}
+            <AutoComplete
+              options={allOptions ?? []}
+              value={{
+                label: value,
+                value: value,
+              }}
+              onValueChange={(e) => form.setValue(fieldName, e.value)}
+            />
+
             <Select onValueChange={onChange} defaultValue={value} {...rest}>
               <FormControl>
                 <SelectTrigger>
@@ -236,76 +258,144 @@ const DropDownField: React.FC<FieldRenderProps> = memo(
   }
 );
 
+const DropDownField: React.FC<FieldRenderProps> = memo(
+  ({ field, parentName }) => {
+    const [isOpen, setIsOpen] = useState<boolean>(false);
+    const form = useFormContext(); // retrieve all hook methods
+    const { name, label, type, validations, value, options } = field;
+    // const isLoading = form.formState.isLoading;
+
+    const fieldName: string = `${parentName}-${name}`;
+
+    let renderOpt = options?.map((x: string) => ({
+      label: x,
+      value: x,
+    }));
+    return (
+      <FormField
+        control={form.control}
+        name={`${parentName}-${name}`}
+        // disabled={!!validations?.mandatory || isLoading}
+        rules={{
+          required: !!validations?.mandatory && label + " is required",
+          minLength: validations?.min_length,
+        }}
+        defaultValue={value ?? ""}
+        render={({ field: { value, onChange, onBlur, ...rest } }) => (
+          <FormItem>
+            <FormLabel>
+              {label}
+              {!!validations?.mandatory && (
+                <span className="text-red-500">*</span>
+              )}
+            </FormLabel>
+
+            <AutoSelect
+              options={renderOpt}
+              onBlur={onBlur}
+              placeholder="Select an option"
+              {...rest}
+              value={renderOpt?.find((x) => x?.value === value)}
+              onChange={(val: any, e) => {
+                onChange(val?.value);
+              }}
+            />
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    );
+  }
+);
+
 // Date picker
-const DatePickerField: React.FC<FieldRenderProps> = ({ field, parentName }) => {
-  const [selectedDate, setSelectedDate] = useState<null>(null);
-  const [isOpen, setIsOpen] = useState<boolean>(false);
-  const form = useFormContext(); // retrieve all hook methods
-  const { name, label, type, validations, value, options } = field;
-  const isLoading = form.formState.isLoading;
+const DatePickerField: React.FC<FieldRenderProps> = memo(
+  ({ field, parentName }) => {
+    const [selectedDate, setSelectedDate] = useState<null>(null);
+    const [isOpen, setIsOpen] = useState<boolean>(false);
+    const form = useFormContext(); // retrieve all hook methods
+    const { name, label, type, validations, value, options } = field;
+    const isLoading = form.formState.isLoading;
 
-  const fieldName = `${parentName}-${name}`;
+    const fieldName = `${parentName}-${name}`;
 
-  // const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   console.log("react-date,",e)
-  //   field?.onChange(e)
-  // }
+    // const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    //   console.log("react-date,",e)
+    //   field?.onChange(e)
+    // }
+    const checkMinMaxDate: WhenType = validations?.when || "before"; // Providing a default value of 'before' if validations?.when is undefined
 
-  return (
-    <>
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <FormField
-          disabled={validations?.read_only || isLoading}
-          rules={{
-            required: !!validations?.mandatory && label + " is required",
-            // minLength: 10,
-            // validate: (date) => {
-            //   const parsedDate = parse(date, "dd-MM-yyyy", new Date(), {
-            //     locale: enGB,
-            //   });
-            //   const isValidDate = isValid(parsedDate);
-            //   if(!isValidDate) return "Please enter a valid date"
-            //   return false;
-            // },
-            // minLength:{
-            //   message: "Please enter a valid date",
-            //   value: 10,
-            // }
-          }}
-          control={form.control}
-          name={fieldName}
-          defaultValue={value ?? ""}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                {label}
-                {!!validations?.mandatory && (
-                  <span className="text-red-500">*</span>
-                )}
-              </FormLabel>
-              <FormControl>
-                {/* <Input {...field} /> */}
-                <>
-                  <InputMask
-                    mask="99-99-9999"
-                    {...field}
-                    // onChange={(e) => {
+    // console.log("formstate",form.formState)
 
-                    //   const parsedDate = parse(e.target.value, "dd-MM-yyyy", new Date(), {
-                    //     locale: enGB,
-                    //   });
-                    //   const isValidDate = isValid(parsedDate);
-                    //   console.log("react-date,", e.target.value, isValidDate);
-                    //   field?.onChange(e);
-                    // }}
-                    className="relative"
-                  >
-                    {
-                      // @ts-expect-error
-                      (inputProps: HTMLInputElement) => (
+    // Define validation function for validDate
+    const validDate = (date: string) => {
+      const parsedDate = parse(date, "dd-MM-yyyy", new Date());
+      return (
+        isValid(parsedDate) || "Please enter a valid date in dd-mm-yyyy format"
+      );
+    };
+
+    // Define validation function for minDate
+    const minDate = (date: string) => {
+      const today = new Date();
+      const selectedParsedDate = parse(date, "dd-MM-yyyy", new Date());
+      return (
+        isBefore(selectedParsedDate, today) ||
+        `Date must be before today's date`
+      );
+    };
+
+    // Define validation function for maxDate
+    const maxDate = (date: string) => {
+      const today = new Date();
+      const selectedParsedDate = parse(date, "dd-MM-yyyy", new Date());
+      return (
+        isAfter(selectedParsedDate, today) || `Date must be after today's date`
+      );
+    };
+
+    return (
+      <>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <FormField
+            disabled={validations?.read_only || isLoading}
+            rules={{
+              required: !!validations?.mandatory && label + " is required",
+              validate: {
+                validDate,
+                ...(checkMinMaxDate === "before" && { minDate }),
+                ...(checkMinMaxDate === "after" && { maxDate }),
+              },
+            }}
+            control={form.control}
+            name={fieldName}
+            defaultValue={value ?? ""}
+            render={({ field: { onChange, value, ref } }) => (
+              <FormItem>
+                <FormLabel>
+                  {label}
+                  {!!validations?.mandatory && (
+                    <span className="text-red-500">*</span>
+                  )}
+                </FormLabel>
+                <FormControl>
+                  {/* <Input {...field} /> */}
+                  <>
+                    <InputMask
+                      mask="99-99-9999"
+                      onChange={onChange}
+                      value={value}
+                      className="relative"
+                    >
+                      {/*  @ts-expect-error */}
+                      {(inputProps: HTMLInputElement) => (
                         <div className="relative">
                           {/*  @ts-expect-error */}
-                          <Input {...inputProps} placeholder={label} />
+                          <Input
+                            {...inputProps}
+                            ref={ref}
+                            placeholder={label}
+                          />
                           {/* <DialogTrigger asChild> */}
                           <CalendarIcon
                             onClick={() => setIsOpen(true)}
@@ -313,53 +403,53 @@ const DatePickerField: React.FC<FieldRenderProps> = ({ field, parentName }) => {
                           />
                           {/* </DialogTrigger> */}
                         </div>
-                      )
-                    }
-                  </InputMask>
-                </>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        {/* <Button variant="outline">Edit Profile</Button> */}
+                      )}
+                    </InputMask>
+                  </>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {/* <Button variant="outline">Edit Profile</Button> */}
 
-        <DialogContent className="max-w-[300px]">
-          <DialogHeader>
-            <DialogTitle>
-              Select a {label}
-              {!!validations?.mandatory && (
-                <span className="text-red-500">*</span>
-              )}
-            </DialogTitle>
-            <DialogDescription>
-              Please select a {label} as per your document.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-center -mx-6">
-            <Calendar
-              captionLayout="dropdown-buttons"
-              fromYear={2010}
-              toYear={2024}
-              mode="single"
-              // @ts-ignore
-              selected={selectedDate}
-              onSelect={(date: any) => {
-                console.log("coming date >>", date);
-                if (!date) return;
+          <DialogContent className="max-w-[300px]">
+            <DialogHeader>
+              <DialogTitle>
+                Select a {label}
+                {!!validations?.mandatory && (
+                  <span className="text-red-500">*</span>
+                )}
+              </DialogTitle>
+              <DialogDescription>
+                Please select a {label} as per your document.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-center -mx-6">
+              <Calendar
+                captionLayout="dropdown-buttons"
+                fromYear={2010}
+                toYear={2024}
+                mode="single"
                 // @ts-ignore
-                let val = format(date, "dd-MM-yyyy");
-                console.log(format(date, "dd-MM-yyyy"));
-                form.setValue(fieldName, val);
-                setSelectedDate(date);
-                setIsOpen(false);
-                console.log("date >>", fieldName, ">>", val);
-              }}
-              className="rounded-md border"
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-};
+                selected={selectedDate}
+                onSelect={(date: any) => {
+                  console.log("coming date >>", date);
+                  if (!date) return;
+                  // @ts-ignore
+                  let val = format(date, "dd-MM-yyyy");
+                  console.log(format(date, "dd-MM-yyyy"));
+                  form.setValue(fieldName, val);
+                  setSelectedDate(date);
+                  setIsOpen(false);
+                  console.log("date >>", fieldName, ">>", val);
+                }}
+                className="rounded-md border"
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
+);
