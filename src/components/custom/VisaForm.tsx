@@ -183,23 +183,19 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const HiddenField: React.FC<FieldRenderProps> = memo(
   ({ field, parentName }) => {
     const form = useFormContext(); // retrieve all hook methods
-    const { name, label, validations, value, type } = field;
+    const { name, label, validations, value } = field;
 
-    const isLoading = useMemo(
-      () => form.formState.isLoading || form.formState.isValidating,
-      [form.formState.isLoading || form.formState.isValidating]
-    );
+    // const isLoading = useMemo(
+    //   () => form.formState.isLoading || form.formState.isValidating,
+    //   [form.formState.isLoading || form.formState.isValidating]
+    // );
 
     const fieldName: string = `${parentName}-${name}`;
 
-    const isDigit = (value: string) => {
-      const digitRegex = /^\d+$/;
-      return digitRegex.test(value) || "Only numbers are allowed";
-    };
-
     return (
       <FormField
-        disabled={!!validations?.read_only || isLoading}
+        disabled={!!validations?.read_only}
+        // disabled={!!validations?.read_only || isLoading}
         control={form.control}
         name={fieldName}
         defaultValue={value}
@@ -226,10 +222,6 @@ const InputField: React.FC<FieldRenderProps> = memo(({ field, parentName }) => {
   const form = useFormContext(); // retrieve all hook methods
   const { name, label, validations, value, type } = field;
 
-  const isLoading = useMemo(
-    () => form.formState.isLoading || form.formState.isValidating,
-    [form.formState.isLoading || form.formState.isValidating]
-  );
   const fieldName: string = `${parentName}-${name}`;
 
   const isDigit = (value: string) => {
@@ -276,12 +268,17 @@ const InputField: React.FC<FieldRenderProps> = memo(({ field, parentName }) => {
 
   return (
     <FormField
-      disabled={!!validations?.read_only || isLoading}
+      // disabled={!!validations?.read_only || isLoading}
+      disabled={!!validations?.read_only}
       rules={validationRules}
       control={form.control}
       name={fieldName}
       defaultValue={value}
-      render={({ field }) => (
+      render={({
+        field,
+        fieldState: { isValidating },
+        formState: { isSubmitting },
+      }) => (
         <FormItem>
           <FormLabel className="ellipsis" title={label}>
             {label}
@@ -290,7 +287,11 @@ const InputField: React.FC<FieldRenderProps> = memo(({ field, parentName }) => {
             )}
           </FormLabel>
           <FormControl>
-            <Input placeholder={label} {...field} />
+            <Input
+              placeholder={label}
+              {...field}
+              disabled={field.disabled || isSubmitting || isValidating}
+            />
           </FormControl>
           <FormMessage className="ellipsis" />
         </FormItem>
@@ -315,30 +316,15 @@ const DropDownField: React.FC<FieldRenderProps> = memo(
 
     const fieldName: string = `${parentName}-${name}`;
 
-    const isLoading = useMemo(
-      () => form.formState.isLoading || form.formState.isValidating,
-      [form.formState.isLoading || form.formState.isValidating]
-    );
-
     let getStateValue = useMemo(
       () => form.watch(fieldName),
       [form.watch(fieldName)]
-    );
-
-    let getFieldState = useMemo(
-      () => form.getFieldState(fieldName),
-      [form.getFieldState(fieldName)]
     );
 
     const dependantElements = useMemo(
       () =>
         dependent_elements.filter((a) => a?.dependent_value === getStateValue),
       [getStateValue]
-    );
-
-    const isInvalidField = useMemo(
-      () => getFieldState?.invalid,
-      [getFieldState?.invalid]
     );
 
     useEffect(() => {
@@ -363,13 +349,18 @@ const DropDownField: React.FC<FieldRenderProps> = memo(
           <FormField
             control={form.control}
             name={fieldName}
-            disabled={!!validations?.read_only || isLoading}
+            // disabled={!!validations?.read_only || isLoading}
+            disabled={!!validations?.read_only}
             rules={{
               required: !!validations?.mandatory && label + " is required",
               minLength: validations?.min_length,
             }}
             defaultValue={value && value}
-            render={({ field: { value, onChange, onBlur, ...rest } }) => (
+            render={({
+              field: { value, onChange, onBlur, ...rest },
+              fieldState: { isValidating, invalid },
+              formState: { isSubmitting },
+            }) => (
               <FormItem>
                 <FormLabel className="ellipsis" title={label}>
                   {label}
@@ -380,12 +371,13 @@ const DropDownField: React.FC<FieldRenderProps> = memo(
 
                 <AutoSelect
                   options={renderOpt}
-                  className={!!isInvalidField ? "[&>div]:bg-red-500/20" : ""}
+                  className={!!invalid ? "[&>div]:bg-red-500/20" : ""}
                   menuPosition="fixed"
                   onBlur={onBlur}
                   placeholder="Select an option"
                   menuPortalTarget={menuPortalTarget}
                   menuShouldBlockScroll
+                  isDisabled={rest.disabled || isSubmitting || isValidating}
                   {...rest}
                   defaultValue={value && { label: value, value: value }}
                   onChange={(val: any) => {
@@ -420,14 +412,10 @@ const DatePickerField: React.FC<FieldRenderProps> = memo(
     const form = useFormContext(); // retrieve all hook methods
     const { name, label, validations, value } = field;
 
-    const isLoading = useMemo(
-      () => form.formState.isLoading || form.formState.isValidating,
-      [form.formState.isLoading || form.formState.isValidating]
-    );
-
     const fieldName = `${parentName}-${name}`;
 
     const checkMinMaxDate: WhenType = validations?.when || "before"; // Providing a default value of 'before' if validations?.when is undefined
+
     // Define validation function for validDate
     const validDate = (date: string) => {
       const parsedDate = parse(date, "dd-MM-yyyy", new Date());
@@ -435,11 +423,6 @@ const DatePickerField: React.FC<FieldRenderProps> = memo(
         isValid(parsedDate) || "Please enter a valid date in dd-mm-yyyy format"
       );
     };
-
-    let getFieldState = useMemo(
-      () => form.getFieldState(fieldName),
-      [form.getFieldState(fieldName)]
-    );
 
     // Define validation function for minDate
     const minDate = (date: string) => {
@@ -459,8 +442,6 @@ const DatePickerField: React.FC<FieldRenderProps> = memo(
         isAfter(selectedParsedDate, today) || `Date must be after today's date`
       );
     };
-
-    let getYear = new Date().getFullYear();
 
     const calculateDateRange = (checkMinMaxDate: WhenType) => {
       const currentDate = new Date();
@@ -520,7 +501,7 @@ const DatePickerField: React.FC<FieldRenderProps> = memo(
       <>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <FormField
-            disabled={validations?.read_only || isLoading}
+            disabled={validations?.read_only}
             rules={{
               required: !!validations?.mandatory && label + " is required",
               validate: {
@@ -532,7 +513,11 @@ const DatePickerField: React.FC<FieldRenderProps> = memo(
             control={form.control}
             name={fieldName}
             defaultValue={value ?? ""}
-            render={({ field: { onChange, value, ref, ...args } }) => (
+            render={({
+              field: { onChange, value, ref, ...args },
+              fieldState: { invalid, isValidating },
+              formState: { isSubmitting },
+            }) => (
               <FormItem>
                 <FormLabel className="ellipsis" title={label}>
                   {label}
@@ -544,6 +529,7 @@ const DatePickerField: React.FC<FieldRenderProps> = memo(
                   <>
                     <InputMask
                       mask="99-99-9999"
+                      disabled={args.disabled || isValidating || isSubmitting}
                       onChange={(e) => {
                         onChange(e);
                         let inputValue = e.target.value;
@@ -570,9 +556,7 @@ const DatePickerField: React.FC<FieldRenderProps> = memo(
                             {...inputProps}
                             ref={ref}
                             placeholder={label}
-                            className={
-                              !!getFieldState.invalid ? "bg-red-500/20" : ""
-                            }
+                            className={invalid ? "bg-red-500/20" : ""}
                           />
                           <CalendarIcon
                             onClick={() => setIsOpen(true)}
