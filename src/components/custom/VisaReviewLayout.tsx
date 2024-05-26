@@ -2,15 +2,15 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { Button } from "../ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Card, CardContent } from "../ui/card";
+import { Form } from "../ui/form";
 import { ScrollArea, ScrollBar } from "../ui/scroll-area";
 import { Skeleton } from "../ui/skeleton";
 import ApplicationDetails from "./ApplicationDetails";
-import { VisaForm } from "./VisaForm";
 import DocumentsCard from "./DocumentsCard";
-import { Form } from "../ui/form";
+import { VisaForm } from "./VisaForm";
 
 type Props = {
   formData: any;
@@ -20,11 +20,17 @@ type Props = {
 const VisaReviewLayout: React.FC<Props> = ({ formData, dataDictionary }) => {
   const methods = useForm();
 
-
   const onSubmit = (data: any) => {
-    console.log("data >>", data);
-    alert(JSON.stringify(data))
-  }
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        console.log("data >>", data);
+        alert(JSON.stringify(data));
+        resolve();
+      }, 2000);
+    });
+  };
+
+  // console.log("VisaForm", formData);
 
   const [activeApplicant, setactiveApplicant] = useState<number | string>("");
 
@@ -104,7 +110,15 @@ const VisaReviewLayout: React.FC<Props> = ({ formData, dataDictionary }) => {
             </div>
           </div>
           <Card className="w-full flex items-center justify-end p-3 rounded-b-none ">
-            <Button type="submit" variant={"destructive"}>
+            <Button
+              type="submit"
+              variant={"destructive"}
+              loading={
+                methods.formState.isLoading ||
+                methods.formState.isSubmitting ||
+                methods.formState.isValidating
+              }
+            >
               Confirm & Proceed
             </Button>
           </Card>

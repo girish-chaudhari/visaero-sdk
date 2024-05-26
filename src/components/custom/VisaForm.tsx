@@ -12,19 +12,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { format, isAfter, isBefore, isValid, parse } from "date-fns";
 
 import { CalendarIcon } from "lucide-react";
-import React, { memo, useMemo, useState } from "react";
-import AutoComplete, { type Option } from "../ui/autocomplete";
+import React, { memo, useEffect, useMemo, useState } from "react";
 
 import AutoSelect from "../ui/autoselect";
 import { Calendar } from "../ui/calendar";
@@ -36,6 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui/dialog";
+import { Separator } from "../ui/separator";
 
 interface Props {
   formData: any;
@@ -62,32 +54,13 @@ interface Field {
   value: string;
   group_elements?: Field[];
   options?: string[];
+  dependent_elements: Field[];
+  dependent_value: string;
+  sub_group_elements: Field[];
 }
 
 export function VisaForm(props: Props) {
   const { formData } = props;
-  // const form = useFormContext(); // retrieve all hook methods
-
-  const renderForm = (field: Field, ind: number, group_name: string) => {
-    const { type } = field;
-
-    switch (type) {
-      case "sub_group":
-        return <SubGroup field={field} key={ind} parentName={group_name} />;
-      case "textField":
-        return <InputField field={field} key={ind} parentName={group_name} />;
-      case "dropdown":
-        return (
-          <DropDownField field={field} key={ind} parentName={group_name} />
-        );
-      case "dateControl":
-        return (
-          <DatePickerField field={field} key={ind} parentName={group_name} />
-        );
-      default:
-        return <InputField field={field} key={ind} parentName={group_name} />;
-    }
-  };
 
   return (
     <>
@@ -116,7 +89,12 @@ export function VisaForm(props: Props) {
                     {x?.group_elements?.map(
                       (a: Field, i: number) =>
                         !!a?.validations?.display && (
-                          <div key={i}>{renderForm(a, i, name)}</div>
+                          <FormRenderer
+                            key={i}
+                            field={a}
+                            ind={i}
+                            parentName={name}
+                          />
                         )
                     )}
                   </div>
@@ -130,6 +108,39 @@ export function VisaForm(props: Props) {
   );
 }
 
+interface FormRendererProps {
+  field: Field;
+  ind: number;
+  parentName: string;
+}
+
+const FormRenderer: React.FC<FormRendererProps> = memo(
+  ({ field, ind, parentName }) => {
+    // const { type } = field;
+
+    field.type = !!!field.validations.display ? "hidden" : field.type;
+
+    switch (field?.type) {
+      case "subGroup":
+        return <SubGroup field={field} key={ind} parentName={parentName} />;
+      case "textField":
+        return <InputField field={field} key={ind} parentName={parentName} />;
+      case "dropdown":
+        return (
+          <DropDownField field={field} key={ind} parentName={parentName} />
+        );
+      case "dateControl":
+        return (
+          <DatePickerField field={field} key={ind} parentName={parentName} />
+        );
+      case "hidden":
+        return <HiddenField field={field} key={ind} parentName={parentName} />;
+      default:
+        return <InputField field={field} key={ind} parentName={parentName} />;
+    }
+  }
+);
+
 interface SubGroupProps {
   field: Field;
   children?: React.ReactNode;
@@ -140,40 +151,139 @@ interface FieldRenderProps {
   parentName?: string;
 }
 
-const SubGroup: React.FC<SubGroupProps> = ({ field, children, parentName }) => {
-  const { name, label, type, validations, value } = field;
+const SubGroup: React.FC<SubGroupProps> = ({ field, parentName }) => {
+  const { name, label, sub_group_elements } = field;
+
+  const fieldName: string = `${parentName}-${name}`;
+
+  // console.log("fieldname", fieldName, sub_group_elements);
+
   return (
     <Card className={`overflow-hidden`}>
-      <CardContent className="p-4">
-        <div className="text-md">{label}</div>
-        {children && <div>{children}</div>}
+      <CardHeader className=" py-3 bg-slate-100">
+        <CardTitle className="text-sm">{label}</CardTitle>
+        {/* <CardDescription>Card Description</CardDescription> */}
+      </CardHeader>
+      <Separator />
+      <CardContent className="grid grid-cols-3 gap-4 px-3 pt-3">
+        {!!sub_group_elements?.length
+          ? sub_group_elements.map((x: any) =>
+              x?.map((a: Field, i: number) => (
+                <FormRenderer field={a} ind={i} parentName={fieldName} />
+              ))
+            )
+          : null}
       </CardContent>
     </Card>
   );
 };
 
-const InputField: React.FC<FieldRenderProps> = ({ field, parentName }) => {
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+const HiddenField: React.FC<FieldRenderProps> = memo(
+  ({ field, parentName }) => {
+    const form = useFormContext(); // retrieve all hook methods
+    const { name, label, validations, value, type } = field;
+
+    const isLoading = useMemo(
+      () => form.formState.isLoading || form.formState.isValidating,
+      [form.formState.isLoading || form.formState.isValidating]
+    );
+
+    const fieldName: string = `${parentName}-${name}`;
+
+    const isDigit = (value: string) => {
+      const digitRegex = /^\d+$/;
+      return digitRegex.test(value) || "Only numbers are allowed";
+    };
+
+    return (
+      <FormField
+        disabled={!!validations?.read_only || isLoading}
+        control={form.control}
+        name={fieldName}
+        defaultValue={value}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="ellipsis" title={label}>
+              {label}
+              {!!validations?.mandatory && (
+                <span className="text-red-500">*</span>
+              )}
+            </FormLabel>
+            <FormControl>
+              <Input type="hidden" placeholder={label} {...field} />
+            </FormControl>
+            <FormMessage className="ellipsis" />
+          </FormItem>
+        )}
+      />
+    );
+  }
+);
+
+const InputField: React.FC<FieldRenderProps> = memo(({ field, parentName }) => {
   const form = useFormContext(); // retrieve all hook methods
-  const { name, label, type, validations, value } = field;
+  const { name, label, validations, value, type } = field;
 
-  // const fieldState = form.getFieldState("test", form.formState);
+  const isLoading = useMemo(
+    () => form.formState.isLoading || form.formState.isValidating,
+    [form.formState.isLoading || form.formState.isValidating]
+  );
+  const fieldName: string = `${parentName}-${name}`;
 
-  // console.log(name + "error >", fieldState);
-  const isLoading = form.formState.isLoading;
+  const isDigit = (value: string) => {
+    const digitRegex = /^\d+$/;
+    return digitRegex.test(value) || "Only numbers are allowed";
+  };
+  const getValidationRules = ({
+    label,
+    type,
+    validations,
+  }: {
+    label: string;
+    type: string;
+    validations: {
+      read_only?: boolean;
+      mandatory?: boolean;
+      min_length?: number;
+      isDigit?: (value: string) => boolean | string;
+    };
+  }) => {
+    const baseRules = {
+      required: !!validations?.mandatory && `${label} is required`,
+      minLength: validations?.min_length
+        ? {
+            value: validations.min_length,
+            message: `${label} must be at least ${validations.min_length} characters long`,
+          }
+        : undefined,
+      validate: validations?.isDigit ? isDigit : undefined,
+    };
+    if (label === "Email" || type === "email") {
+      // @ts-expect-error
+      baseRules.pattern = {
+        value: emailPattern,
+        message: `${label} must be a valid email address`,
+      };
+    }
+
+    return baseRules;
+  };
+
+  // @ts-expect-error
+  const validationRules = getValidationRules({ label, type, validations });
 
   return (
     <FormField
       disabled={!!validations?.read_only || isLoading}
-      rules={{
-        required: !!validations?.mandatory && label + " is required",
-        minLength: validations?.min_length,
-      }}
+      rules={validationRules}
       control={form.control}
-      name={`${parentName}-${name}`}
+      name={fieldName}
       defaultValue={value}
       render={({ field }) => (
         <FormItem>
-          <FormLabel>
+          <FormLabel className="ellipsis" title={label}>
             {label}
             {!!validations?.mandatory && (
               <span className="text-red-500">*</span>
@@ -182,128 +292,121 @@ const InputField: React.FC<FieldRenderProps> = ({ field, parentName }) => {
           <FormControl>
             <Input placeholder={label} {...field} />
           </FormControl>
-          {/* <FormDescription>This is your public display name.</FormDescription> */}
-          <FormMessage />
+          <FormMessage className="ellipsis" />
         </FormItem>
       )}
     />
   );
-};
-const AutoCompleteField: React.FC<FieldRenderProps> = memo(
-  ({ field, parentName }) => {
-    const form = useFormContext(); // retrieve all hook methods
-    const { name, label, type, validations, value, options } = field;
-    const isLoading = form.formState.isLoading;
-
-    const allOptions: Option[] | undefined = useMemo(() => {
-      return options?.map((x: string) => ({ label: x, value: x }));
-    }, []);
-
-    // console.log("value", value, "options >>", options);
-
-    const fieldName: string = `${parentName}-${name}`;
-
-    // const selectedValue: Option | undefined = allOptions?.find((x) => x === form.formState.va));
-
-    return (
-      <FormField
-        control={form.control}
-        name={fieldName}
-        // disabled={!!validations?.mandatory || isLoading }
-        rules={{
-          required: !!validations?.mandatory && label + " is required",
-          minLength: validations?.min_length,
-        }}
-        defaultValue={value ?? ""}
-        render={({ field: { value, onChange, ...rest } }) => (
-          <FormItem>
-            <FormLabel>
-              {label}
-              {!!validations?.mandatory && (
-                <span className="text-red-500">*</span>
-              )}
-            </FormLabel>
-            {/*  @ts-expect-error */}
-            <AutoComplete
-              options={allOptions ?? []}
-              value={{
-                label: value,
-                value: value,
-              }}
-              onValueChange={(e) => form.setValue(fieldName, e.value)}
-            />
-
-            <Select onValueChange={onChange} defaultValue={value} {...rest}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select an option" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectGroup>
-                  {options?.map((v: string, i: number) => (
-                    <SelectItem value={(v ?? "").toUpperCase()} key={i}>
-                      {v}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-    );
-  }
-);
+});
 
 const DropDownField: React.FC<FieldRenderProps> = memo(
   ({ field, parentName }) => {
-    const [isOpen, setIsOpen] = useState<boolean>(false);
+    const [menuPortalTarget, setMenuPortalTarget] =
+      useState<null | HTMLElement>(null);
     const form = useFormContext(); // retrieve all hook methods
-    const { name, label, type, validations, value, options } = field;
-    // const isLoading = form.formState.isLoading;
+    const {
+      name,
+      label,
+      validations,
+      value,
+      options,
+      dependent_elements = [],
+    } = field;
 
     const fieldName: string = `${parentName}-${name}`;
+
+    const isLoading = useMemo(
+      () => form.formState.isLoading || form.formState.isValidating,
+      [form.formState.isLoading || form.formState.isValidating]
+    );
+
+    let getStateValue = useMemo(
+      () => form.watch(fieldName),
+      [form.watch(fieldName)]
+    );
+
+    let getFieldState = useMemo(
+      () => form.getFieldState(fieldName),
+      [form.getFieldState(fieldName)]
+    );
+
+    const dependantElements = useMemo(
+      () =>
+        dependent_elements.filter((a) => a?.dependent_value === getStateValue),
+      [getStateValue]
+    );
+
+    const isInvalidField = useMemo(
+      () => getFieldState?.invalid,
+      [getFieldState?.invalid]
+    );
+
+    useEffect(() => {
+      if (typeof document !== "undefined") {
+        setMenuPortalTarget(document.querySelector("body"));
+      }
+    }, []);
 
     let renderOpt = options?.map((x: string) => ({
       label: x,
       value: x,
     }));
     return (
-      <FormField
-        control={form.control}
-        name={`${parentName}-${name}`}
-        // disabled={!!validations?.mandatory || isLoading}
-        rules={{
-          required: !!validations?.mandatory && label + " is required",
-          minLength: validations?.min_length,
-        }}
-        defaultValue={value ?? ""}
-        render={({ field: { value, onChange, onBlur, ...rest } }) => (
-          <FormItem>
-            <FormLabel>
-              {label}
-              {!!validations?.mandatory && (
-                <span className="text-red-500">*</span>
-              )}
-            </FormLabel>
+      <>
+        <div
+          className={
+            !!dependent_elements?.length
+              ? "col-span-12 grid grid-cols-3 gap-4 p-2"
+              : ""
+          }
+        >
+          <FormField
+            control={form.control}
+            name={fieldName}
+            disabled={!!validations?.read_only || isLoading}
+            rules={{
+              required: !!validations?.mandatory && label + " is required",
+              minLength: validations?.min_length,
+            }}
+            defaultValue={value && value}
+            render={({ field: { value, onChange, onBlur, ...rest } }) => (
+              <FormItem>
+                <FormLabel className="ellipsis" title={label}>
+                  {label}
+                  {!!validations?.mandatory && (
+                    <span className="text-red-500">*</span>
+                  )}
+                </FormLabel>
 
-            <AutoSelect
-              options={renderOpt}
-              onBlur={onBlur}
-              placeholder="Select an option"
-              {...rest}
-              value={renderOpt?.find((x) => x?.value === value)}
-              onChange={(val: any, e) => {
-                onChange(val?.value);
-              }}
-            />
-            <FormMessage />
-          </FormItem>
+                <AutoSelect
+                  options={renderOpt}
+                  className={!!isInvalidField ? "[&>div]:bg-red-500/20" : ""}
+                  menuPosition="fixed"
+                  onBlur={onBlur}
+                  placeholder="Select an option"
+                  menuPortalTarget={menuPortalTarget}
+                  menuShouldBlockScroll
+                  {...rest}
+                  defaultValue={value && { label: value, value: value }}
+                  onChange={(val: any) => {
+                    onChange(val?.value);
+                    form.setValue(fieldName, val?.value);
+                  }}
+                />
+                <FormMessage className="ellipsis" />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        {!!dependantElements?.length && (
+          <div className="col-span-12">
+            {dependantElements?.map((a: Field, i: number) => (
+              <FormRenderer field={a} ind={i} parentName={fieldName} />
+            ))}
+          </div>
         )}
-      />
+      </>
     );
   }
 );
@@ -311,22 +414,20 @@ const DropDownField: React.FC<FieldRenderProps> = memo(
 // Date picker
 const DatePickerField: React.FC<FieldRenderProps> = memo(
   ({ field, parentName }) => {
-    const [selectedDate, setSelectedDate] = useState<null>(null);
+    const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const form = useFormContext(); // retrieve all hook methods
-    const { name, label, type, validations, value, options } = field;
-    const isLoading = form.formState.isLoading;
+    const { name, label, validations, value } = field;
+
+    const isLoading = useMemo(
+      () => form.formState.isLoading || form.formState.isValidating,
+      [form.formState.isLoading || form.formState.isValidating]
+    );
 
     const fieldName = `${parentName}-${name}`;
 
-    // const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    //   console.log("react-date,",e)
-    //   field?.onChange(e)
-    // }
     const checkMinMaxDate: WhenType = validations?.when || "before"; // Providing a default value of 'before' if validations?.when is undefined
-
-    // console.log("formstate",form.formState)
-
     // Define validation function for validDate
     const validDate = (date: string) => {
       const parsedDate = parse(date, "dd-MM-yyyy", new Date());
@@ -334,6 +435,11 @@ const DatePickerField: React.FC<FieldRenderProps> = memo(
         isValid(parsedDate) || "Please enter a valid date in dd-mm-yyyy format"
       );
     };
+
+    let getFieldState = useMemo(
+      () => form.getFieldState(fieldName),
+      [form.getFieldState(fieldName)]
+    );
 
     // Define validation function for minDate
     const minDate = (date: string) => {
@@ -354,6 +460,62 @@ const DatePickerField: React.FC<FieldRenderProps> = memo(
       );
     };
 
+    let getYear = new Date().getFullYear();
+
+    const calculateDateRange = (checkMinMaxDate: WhenType) => {
+      const currentDate = new Date();
+      const currentYear = currentDate.getFullYear();
+
+      let fromDate, toDate;
+
+      if (checkMinMaxDate === "after") {
+        fromDate = new Date(
+          currentYear,
+          currentDate.getMonth(),
+          currentDate.getDate()
+        );
+        toDate = new Date(
+          currentYear + 100,
+          currentDate.getMonth(),
+          currentDate.getDate()
+        );
+      } else if (checkMinMaxDate === "before") {
+        fromDate = new Date(
+          currentYear - 100,
+          currentDate.getMonth(),
+          currentDate.getDate()
+        );
+        toDate = new Date(
+          currentYear,
+          currentDate.getMonth(),
+          currentDate.getDate()
+        );
+      } else {
+        // Default range: 100 years centered around the current date
+        fromDate = new Date(
+          currentYear - 50,
+          currentDate.getMonth(),
+          currentDate.getDate()
+        );
+        toDate = new Date(
+          currentYear + 50,
+          currentDate.getMonth(),
+          currentDate.getDate()
+        );
+      }
+
+      return { fromDate, toDate };
+    };
+
+    const getParsedDate = (value: string) =>
+      new Date(value.split("-").reverse().join("-")).toISOString();
+
+    useEffect(() => {
+      if (!value) return;
+      let parsedDate = getParsedDate(value);
+      setSelectedDate(parsedDate);
+    }, [value]);
+
     return (
       <>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -370,22 +532,35 @@ const DatePickerField: React.FC<FieldRenderProps> = memo(
             control={form.control}
             name={fieldName}
             defaultValue={value ?? ""}
-            render={({ field: { onChange, value, ref } }) => (
+            render={({ field: { onChange, value, ref, ...args } }) => (
               <FormItem>
-                <FormLabel>
+                <FormLabel className="ellipsis" title={label}>
                   {label}
                   {!!validations?.mandatory && (
                     <span className="text-red-500">*</span>
                   )}
                 </FormLabel>
                 <FormControl>
-                  {/* <Input {...field} /> */}
                   <>
                     <InputMask
                       mask="99-99-9999"
-                      onChange={onChange}
+                      onChange={(e) => {
+                        onChange(e);
+                        let inputValue = e.target.value;
+                        const parsedDate = parse(
+                          inputValue,
+                          "dd-MM-yyyy",
+                          new Date()
+                        );
+
+                        // Check if the parsed date is valid
+                        if (isValid(parsedDate)) {
+                          setSelectedDate(parsedDate as unknown as string); // Update the selectedDate state with the parsed date
+                        }
+                      }}
                       value={value}
                       className="relative"
+                      {...args}
                     >
                       {/*  @ts-expect-error */}
                       {(inputProps: HTMLInputElement) => (
@@ -395,19 +570,20 @@ const DatePickerField: React.FC<FieldRenderProps> = memo(
                             {...inputProps}
                             ref={ref}
                             placeholder={label}
+                            className={
+                              !!getFieldState.invalid ? "bg-red-500/20" : ""
+                            }
                           />
-                          {/* <DialogTrigger asChild> */}
                           <CalendarIcon
                             onClick={() => setIsOpen(true)}
-                            className="absolute right-3 z-10 cursor-pointer translate-y-[-50%] top-[50%] h-4 w-4 opacity-50"
+                            className="absolute right-3 z-[1] cursor-pointer translate-y-[-50%] top-[50%] h-4 w-4 opacity-50"
                           />
-                          {/* </DialogTrigger> */}
                         </div>
                       )}
                     </InputMask>
                   </>
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="ellipsis" />
               </FormItem>
             )}
           />
@@ -427,22 +603,25 @@ const DatePickerField: React.FC<FieldRenderProps> = memo(
             </DialogHeader>
             <div className="flex justify-center -mx-6">
               <Calendar
+                defaultMonth={
+                  selectedDate ? new Date(selectedDate as string) : new Date()
+                }
                 captionLayout="dropdown-buttons"
-                fromYear={2010}
-                toYear={2024}
+                {...calculateDateRange(checkMinMaxDate)}
                 mode="single"
                 // @ts-ignore
-                selected={selectedDate}
+                selected={new Date(selectedDate)}
                 onSelect={(date: any) => {
-                  console.log("coming date >>", date);
                   if (!date) return;
                   // @ts-ignore
                   let val = format(date, "dd-MM-yyyy");
-                  console.log(format(date, "dd-MM-yyyy"));
-                  form.setValue(fieldName, val);
+                  form.setValue(fieldName, val, {
+                    shouldDirty: true,
+                    shouldTouch: true,
+                    shouldValidate: true,
+                  });
                   setSelectedDate(date);
                   setIsOpen(false);
-                  console.log("date >>", fieldName, ">>", val);
                 }}
                 className="rounded-md border"
               />
