@@ -1,7 +1,7 @@
+import { defaultClassNames, defaultStyles } from "@/lib/helper";
 import * as React from "react";
-import Select from "react-select";
 import type { Props } from "react-select";
-import { defaultClassNames, defaultStyles } from '@/lib/hlper'
+import Select from "react-select";
 import {
   ClearIndicator,
   DropdownIndicator,
@@ -19,9 +19,11 @@ const AutoSelect = React.forwardRef((props: Props, ref) => {
     components = {},
     ...rest
   } = props;
+
+
   return (
     <Select
-    // @ts-expect-error
+      // @ts-expect-error
       ref={ref}
       value={value}
       onChange={onChange}
@@ -32,6 +34,7 @@ const AutoSelect = React.forwardRef((props: Props, ref) => {
         ClearIndicator,
         MultiValueRemove,
         Option,
+        // MenuList,
         ...components,
       }}
       styles={styles}

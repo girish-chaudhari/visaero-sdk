@@ -6,6 +6,8 @@ import type {
   OptionProps,
 } from "react-select";
 import { components } from "react-select";
+import { FixedSizeList as List } from "react-window";
+
 import {
   CaretSortIcon,
   CheckIcon,
@@ -50,3 +52,22 @@ export const SelectInput = React.forwardRef<HTMLInputElement, InputProps>(
     return <Input {...props} ref={ref} />;
   }
 );
+
+export const MenuList = (props: any) => {
+  const { options, children, maxHeight, getValue } = props;
+  const height = 35; // row height
+  const [value] = getValue();
+  const initialOffset = options.indexOf(value) * height;
+  
+  return (
+    // @ts-expect-error
+    <List
+      height={maxHeight}
+      itemCount={children.length}
+      itemSize={height}
+      initialScrollOffset={initialOffset}
+    >
+      {({ index, style }) => <div style={style}>{children[index]}</div>}
+    </List>
+  );
+};

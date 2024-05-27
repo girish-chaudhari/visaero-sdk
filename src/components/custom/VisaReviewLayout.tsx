@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
@@ -11,6 +11,7 @@ import { Skeleton } from "../ui/skeleton";
 import ApplicationDetails from "./ApplicationDetails";
 import DocumentsCard from "./DocumentsCard";
 import { VisaForm } from "./VisaForm";
+import { submitVisaForm } from "@/actions/review";
 
 type Props = {
   formData: any;
@@ -19,15 +20,20 @@ type Props = {
 
 const VisaReviewLayout: React.FC<Props> = ({ formData, dataDictionary }) => {
   const methods = useForm();
+  const [isPending, startTransition] = useTransition();
 
   const onSubmit = (data: any) => {
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        console.log("data >>", data);
-        alert(JSON.stringify(data));
-        resolve();
-      }, 2000);
+    startTransition(() => {
+      return new Promise<void>((resolve) => {
+        setTimeout(() => {
+          submitVisaForm(data);
+          console.log("data >>", data);
+          alert(JSON.stringify(data));
+          resolve();
+        }, 2000);
+      });
     });
+   
   };
 
   // console.log("VisaForm", formData);
@@ -116,7 +122,8 @@ const VisaReviewLayout: React.FC<Props> = ({ formData, dataDictionary }) => {
               loading={
                 methods.formState.isLoading ||
                 methods.formState.isSubmitting ||
-                methods.formState.isValidating
+                methods.formState.isValidating ||
+                isPending
               }
             >
               Confirm & Proceed

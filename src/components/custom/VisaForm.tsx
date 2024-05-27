@@ -185,11 +185,6 @@ const HiddenField: React.FC<FieldRenderProps> = memo(
     const form = useFormContext(); // retrieve all hook methods
     const { name, label, validations, value } = field;
 
-    // const isLoading = useMemo(
-    //   () => form.formState.isLoading || form.formState.isValidating,
-    //   [form.formState.isLoading || form.formState.isValidating]
-    // );
-
     const fieldName: string = `${parentName}-${name}`;
 
     return (

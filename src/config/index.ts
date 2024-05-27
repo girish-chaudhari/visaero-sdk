@@ -1,9 +1,8 @@
 import axiosConfig, {
   AxiosError,
   AxiosInstance,
-  AxiosRequestConfig,
   AxiosResponse,
-  InternalAxiosRequestConfig,
+  InternalAxiosRequestConfig
 } from "axios";
 import { baseUrl } from "./baseUrl";
 
