@@ -39,7 +39,7 @@ export const MultiValueRemove = (props: MultiValueRemoveProps) => {
 export const Option = (props: OptionProps) => {
   return (
     <components.Option {...props}>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between overflow-x-hidden">
         {/* @ts-expect-error */}
         <div>{props!.data!.label}</div>
         {props.isSelected && <CheckIcon />}
