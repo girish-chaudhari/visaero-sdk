@@ -1,8 +1,8 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
-import { useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { memo, useState, useTransition } from "react";
+import { FormProvider, useForm } from "react-hook-form";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 import { Form } from "../ui/form";
@@ -21,6 +21,7 @@ type Props = {
 const VisaReviewLayout: React.FC<Props> = ({ formData, dataDictionary }) => {
   const methods = useForm();
   const [isPending, startTransition] = useTransition();
+  const [activeApplicant, setactiveApplicant] = useState<number | string>("");
 
   const onSubmit = (data: any) => {
     startTransition(() => {
@@ -33,12 +34,48 @@ const VisaReviewLayout: React.FC<Props> = ({ formData, dataDictionary }) => {
         }, 2000);
       });
     });
-   
   };
 
-  // console.log("VisaForm", formData);
+  return (
+    <Form {...methods}>
+      <form onSubmit={methods.handleSubmit(onSubmit)}>
+        <div className="h-screen p-3 pb-0 flex flex-col overflow-hidden">
+          {/* Application details */}
+          <div className="mb-3">
+            <ApplicationDetails />
+          </div>
+          {/* Applicants Bar */}
+          {/* <div className="mb-3">
+            <RenderApplicants />
+          </div> */}
+          <div className="flex gap-3 h-0 flex-1 mb-3">
+            {/* <div className="overflow-hidden w-1/3 h-full">
+              <DocumentsCard />
+            </div> */}
 
-  const [activeApplicant, setactiveApplicant] = useState<number | string>("");
+            <div className="overflow-hidden w-3/3 h-full">
+              <VisaForm formData={formData} dataDictionary={dataDictionary} />
+            </div>
+          </div>
+          <Card className="w-full flex items-center justify-end p-3 rounded-b-none ">
+            <Button type="submit"> Confirm & Proceed</Button>
+            {/* <Button
+              type="submit"
+              variant={"destructive"}
+              loading={
+                methods.formState.isLoading ||
+                methods.formState.isSubmitting ||
+                methods.formState.isValidating ||
+                isPending
+              }
+            >
+              Confirm & Proceed
+            </Button> */}
+          </Card>
+        </div>
+      </form>
+    </Form>
+  );
 
   const RenderApplicants = () => {
     return (
@@ -135,4 +172,5 @@ const VisaReviewLayout: React.FC<Props> = ({ formData, dataDictionary }) => {
   );
 };
 
+// export default memo(VisaReviewLayout);
 export default VisaReviewLayout;

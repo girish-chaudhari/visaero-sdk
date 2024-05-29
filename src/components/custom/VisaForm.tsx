@@ -1,6 +1,6 @@
 "use client";
 
-import { useFormContext } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 import InputMask from "react-input-mask";
 
 import {
@@ -28,6 +28,7 @@ import {
   DialogTitle,
 } from "../ui/dialog";
 import { Separator } from "../ui/separator";
+import { Label } from "../ui/label";
 
 interface Props {
   formData: any;
@@ -59,7 +60,7 @@ interface Field {
   sub_group_elements: Field[];
 }
 
-export function VisaForm(props: Props) {
+export const VisaForm = memo((props: Props) => {
   const { formData } = props;
 
   return (
@@ -73,40 +74,37 @@ export function VisaForm(props: Props) {
           </CardTitle>
         </CardHeader>
         <CardContent className="h-full px-0 ps-2 pb-24">
-          <ScrollArea className="h-full">
-            {formData?.map((x: Field, i: number) => {
-              const name: string = x?.name;
-              return (
-                <div className="p-4 " key={i}>
-                  <div className="text-xl mb-2 text-black font-bold">
-                    {x?.label}
-                  </div>
-                  <div className="text-[0.8rem] mb-2 text-slate-400">
-                    {x?.sub_label}
-                  </div>
-                  <hr className="w-1/2" />
-                  <div className="grid grid-cols-3 gap-4 p-2">
-                    {x?.group_elements?.map(
-                      (a: Field, i: number) =>
-                        !!a?.validations?.display && (
-                          <FormRenderer
-                            key={i}
-                            field={a}
-                            ind={i}
-                            parentName={name}
-                          />
-                        )
-                    )}
-                  </div>
+          {/* <ScrollArea className="h-full"> */}
+          {formData?.map((x: Field, i: number) => {
+            const name: string = x?.name;
+            return (
+              <div className="p-4 " key={i}>
+                <div className="text-xl mb-2 text-black font-bold">
+                  {x?.label}
                 </div>
-              );
-            })}
-          </ScrollArea>
+                <div className="text-[0.8rem] mb-2 text-slate-400">
+                  {x?.sub_label}
+                </div>
+                <hr className="w-1/2" />
+                <div className="grid grid-cols-3 gap-4 p-2">
+                  {x?.group_elements?.map((a: Field, i: number) => (
+                    <FormRenderer
+                      field={a}
+                      ind={i}
+                      key={i}
+                      parentName={a?.name}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+          {/* </ScrollArea> */}
         </CardContent>
       </Card>
     </>
   );
-}
+});
 
 VisaForm.displayName = "VisaForm";
 
@@ -122,24 +120,30 @@ const FormRenderer: React.FC<FormRendererProps> = memo(
 
     field.type = !!!field.validations.display ? "hidden" : field.type;
 
-    switch (field?.type) {
-      case "subGroup":
-        return <SubGroup field={field} key={ind} parentName={parentName} />;
-      case "textField":
-        return <InputField field={field} key={ind} parentName={parentName} />;
-      case "dropdown":
-        return (
-          <DropDownField field={field} key={ind} parentName={parentName} />
-        );
-      case "dateControl":
-        return (
-          <DatePickerField field={field} key={ind} parentName={parentName} />
-        );
-      case "hidden":
-        return <HiddenField field={field} key={ind} parentName={parentName} />;
-      default:
-        return <InputField field={field} key={ind} parentName={parentName} />;
-    }
+    const InputView = useMemo(() => {
+      switch (field?.type) {
+        // case "subGroup":
+        //   return <SubGroup field={field} key={ind} parentName={parentName} />;
+        // case "textField":
+        //   return <InputField field={field} key={ind} parentName={parentName} />;
+        // case "dropdown":
+        //   return (
+        //     <DropDownField field={field} key={ind} parentName={parentName} />
+        //   );
+        // case "dateControl":
+        //   return (
+        //     <DatePickerField field={field} key={ind} parentName={parentName} />
+        //   );
+        // case "hidden":
+        //   return <HiddenField field={field} key={ind} parentName={parentName} />;
+        default:
+          return (
+            <InputFieldTest field={field} key={ind} parentName={parentName} />
+          );
+      }
+    }, []);
+
+    return InputView;
   }
 );
 
@@ -182,6 +186,62 @@ const SubGroup: React.FC<SubGroupProps> = ({ field, parentName }) => {
   );
 };
 SubGroup.displayName = "SubGroup";
+
+const InputFieldTest: React.FC<FieldRenderProps> = memo(
+  ({ field, parentName }) => {
+    const { register } = useFormContext(); // retrieve all hook methods
+    const { name, label, validations, value } = field;
+
+    console.log("rerendered >>");
+
+    const fieldName: string = `${parentName}-${name}`;
+
+    return (
+      <Controller
+        name={fieldName}
+        rules={{
+          required: true,
+        }}
+        render={({ field, fieldState: { invalid, error } }) => (
+          <div className="flex flex-col gap-2">
+            <Label className="ellipsis" title={label}>
+              {label}
+              {!!validations?.mandatory && (
+                <span className="text-red-500">*</span>
+              )}
+            </Label>
+            <Input type="text" placeholder={label} {...field} aria-invalid={invalid} />
+            { <p>{error?.message}</p>}
+          </div>
+        )}
+      />
+    );
+
+    // return (
+    //   <FormField
+    //     disabled={!!validations?.read_only}
+    //     // disabled={!!validations?.read_only || isLoading}
+    //     control={form.control}
+    //     name={fieldName}
+    //     defaultValue={value ?? ""}
+    //     render={({ field }) => (
+    //       <FormItem>
+    //         <FormLabel className="ellipsis" title={label}>
+    //           {label}
+    //           {!!validations?.mandatory && (
+    //             <span className="text-red-500">*</span>
+    //           )}
+    //         </FormLabel>
+    //         <FormControl>
+    //           <Input type="hidden" placeholder={label} {...field} />
+    //         </FormControl>
+    //         <FormMessage className="ellipsis" />
+    //       </FormItem>
+    //     )}
+    //   />
+    // );
+  }
+);
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
