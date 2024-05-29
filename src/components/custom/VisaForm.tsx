@@ -108,6 +108,8 @@ export function VisaForm(props: Props) {
   );
 }
 
+VisaForm.displayName = "VisaForm";
+
 interface FormRendererProps {
   field: Field;
   ind: number;
@@ -140,6 +142,8 @@ const FormRenderer: React.FC<FormRendererProps> = memo(
     }
   }
 );
+
+FormRenderer.displayName = "FormRenderer";
 
 interface SubGroupProps {
   field: Field;
@@ -177,6 +181,7 @@ const SubGroup: React.FC<SubGroupProps> = ({ field, parentName }) => {
     </Card>
   );
 };
+SubGroup.displayName = "SubGroup";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -193,7 +198,7 @@ const HiddenField: React.FC<FieldRenderProps> = memo(
         // disabled={!!validations?.read_only || isLoading}
         control={form.control}
         name={fieldName}
-        defaultValue={value}
+        defaultValue={value ?? ""}
         render={({ field }) => (
           <FormItem>
             <FormLabel className="ellipsis" title={label}>
@@ -212,6 +217,8 @@ const HiddenField: React.FC<FieldRenderProps> = memo(
     );
   }
 );
+
+HiddenField.displayName = "HiddenField";
 
 const InputField: React.FC<FieldRenderProps> = memo(({ field, parentName }) => {
   const form = useFormContext(); // retrieve all hook methods
@@ -268,7 +275,7 @@ const InputField: React.FC<FieldRenderProps> = memo(({ field, parentName }) => {
       rules={validationRules}
       control={form.control}
       name={fieldName}
-      defaultValue={value}
+      defaultValue={value ?? ""}
       render={({
         field,
         fieldState: { isValidating },
@@ -294,6 +301,8 @@ const InputField: React.FC<FieldRenderProps> = memo(({ field, parentName }) => {
     />
   );
 });
+
+InputField.displayName = "InputField";
 
 const DropDownField: React.FC<FieldRenderProps> = memo(
   ({ field, parentName }) => {
@@ -350,7 +359,7 @@ const DropDownField: React.FC<FieldRenderProps> = memo(
               required: !!validations?.mandatory && label + " is required",
               minLength: validations?.min_length,
             }}
-            defaultValue={value && value}
+            defaultValue={value ?? ""}
             render={({
               field: { value, onChange, onBlur, ...rest },
               fieldState: { isValidating, invalid },
@@ -397,6 +406,8 @@ const DropDownField: React.FC<FieldRenderProps> = memo(
     );
   }
 );
+
+DropDownField.displayName = "DropDownField";
 
 // Date picker
 const DatePickerField: React.FC<FieldRenderProps> = memo(
@@ -611,3 +622,5 @@ const DatePickerField: React.FC<FieldRenderProps> = memo(
     );
   }
 );
+
+DatePickerField.displayName = "DatePickerField";
