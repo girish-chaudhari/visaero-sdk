@@ -32,7 +32,7 @@ export default async function RootLayout({
           fontSans.variable
         )}
       >
-        <main className="h-screen w-screen bg-primary">
+        <main className="h-screen w-screen">
           <Providers session={session}>
             <Toaster />
             {children}
