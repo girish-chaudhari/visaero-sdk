@@ -7,7 +7,14 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format, isAfter, isBefore, isValid, parse } from "date-fns";
 
-import { CalendarIcon } from "lucide-react";
+import {
+  Calculator,
+  CalendarIcon,
+  CreditCard,
+  Settings,
+  Smile,
+  User,
+} from "lucide-react";
 import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 
 import AutoSelect from "../ui/autoselect";
@@ -22,6 +29,17 @@ import {
 } from "../ui/dialog";
 import { Label } from "../ui/label";
 import { Separator } from "../ui/separator";
+
+import {
+  CommandShortcut,
+  CommandDialog,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandSeparator,
+} from "../ui/command";
 
 interface Props {
   formData: any;
@@ -111,7 +129,11 @@ const FormRenderer: React.FC<FormRendererProps> = memo(
   ({ field, ind, parentName }) => {
     // const { type } = field;
 
-    field.type = !!!field.validations.display ? "hidden" : field.type;
+    field.type = !!!field.validations.display
+      ? "hidden"
+      // : (field?.options ?? [])?.length > 30
+      // ? "commandInput"
+      : field.type;
 
     const InputView = useMemo(() => {
       switch (field?.type) {
@@ -126,6 +148,14 @@ const FormRenderer: React.FC<FormRendererProps> = memo(
         case "dateControl":
           return (
             <DatePickerField field={field} key={ind} parentName={parentName} />
+          );
+        case "commandInput":
+          return (
+            <CommandInputField
+              field={field}
+              key={ind}
+              parentName={parentName}
+            />
           );
         case "hidden":
           return (
@@ -308,6 +338,7 @@ InputField.displayName = "InputField";
 
 const DropDownField: React.FC<FieldRenderProps> = memo(
   ({ field, parentName }) => {
+    const [dependatValue, setDependantValue] = useState<String>("");
     const [menuPortalTarget, setMenuPortalTarget] =
       useState<null | HTMLElement>(null);
     const form = useFormContext(); // retrieve all hook methods
@@ -322,15 +353,16 @@ const DropDownField: React.FC<FieldRenderProps> = memo(
 
     const fieldName: string = `${parentName}-${name}`;
 
-    let getStateValue = useMemo(
-      () => form.watch(fieldName),
-      [form.watch(fieldName)]
-    );
+    // const getStateValue = useMemo(
+    //   () => form.watch(fieldName),
+    //   [form, fieldName]
+    // );
+    // const getStateValue = ""
 
     const dependantElements = useMemo(
       () =>
-        dependent_elements.filter((a) => a?.dependent_value === getStateValue),
-      [getStateValue]
+        dependent_elements.filter((a) => a?.dependent_value === dependatValue),
+      [dependatValue]
     );
 
     useEffect(() => {
@@ -388,6 +420,7 @@ const DropDownField: React.FC<FieldRenderProps> = memo(
                   onChange={(val: any) => {
                     onChange(val?.value);
                     form.setValue(fieldName, val?.value);
+                    setDependantValue(val?.value);
                   }}
                 />
                 {
@@ -413,6 +446,168 @@ const DropDownField: React.FC<FieldRenderProps> = memo(
 );
 
 DropDownField.displayName = "DropDownField";
+
+const CommandInputField: React.FC<FieldRenderProps> = memo(
+  ({ field, parentName }) => {
+    const [dependatValue, setDependantValue] = useState<String>("");
+    const [open, setOpen] = useState<boolean>(false);
+    const [menuPortalTarget, setMenuPortalTarget] =
+      useState<null | HTMLElement>(null);
+    const form = useFormContext(); // retrieve all hook methods
+    const {
+      name,
+      label,
+      validations,
+      value,
+      options,
+      dependent_elements = [],
+    } = field;
+
+    const fieldName: string = `${parentName}-${name}`;
+
+    const dependantElements = useMemo(
+      () =>
+        dependent_elements.filter((a) => a?.dependent_value === dependatValue),
+      [dependatValue]
+    );
+
+    useEffect(() => {
+      if (typeof document !== "undefined") {
+        setMenuPortalTarget(document.querySelector("body"));
+      }
+    }, []);
+
+    // let renderOpt = options?.map((x: string) => ({
+    //   label: x,
+    //   value: x,
+    // }));
+
+    return (
+      <>
+        <Controller
+          // disabled={!!validations?.read_only || isLoading}
+          disabled={!!validations?.read_only}
+          rules={{
+            required: !!validations?.mandatory && label + " is required",
+            minLength: validations?.min_length,
+          }}
+          control={form.control}
+          name={fieldName}
+          defaultValue={value ?? ""}
+          render={({
+            field,
+            fieldState: { error, invalid },
+            // formState: { isSubmitting },
+          }) => (
+            <div className="flex flex-col gap-2">
+              <Label className="ellipsis" title={label}>
+                {label}
+                {!!validations?.mandatory && (
+                  <span className="text-red-500">*</span>
+                )}
+              </Label>
+              <Input
+                onFocus={() => setOpen(true)}
+                type="text"
+                placeholder={label}
+                {...field}
+                aria-invalid={invalid}
+              />
+              {
+                <p className="text-red-500 font-sans text-xs font-semibold ">
+                  {error?.message}
+                </p>
+              }
+            </div>
+          )}
+        />
+        <CommandDialog open={open} onOpenChange={setOpen}>
+          <CommandInput placeholder="Type a command or search..." />
+          <CommandList>
+            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandGroup heading="Suggestions">
+              {options?.map((x: string, i: number) => (
+                <CommandItem>
+                  <span>Calendar</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </CommandDialog>
+      </>
+    );
+
+    return (
+      <>
+        <div
+          className={
+            !!dependent_elements?.length
+              ? "col-span-12 grid grid-cols-3 gap-4 p-2"
+              : ""
+          }
+        >
+          <Controller
+            control={form.control}
+            name={fieldName}
+            // disabled={!!validations?.read_only || isLoading}
+            disabled={!!validations?.read_only}
+            rules={{
+              required: !!validations?.mandatory && label + " is required",
+              minLength: validations?.min_length,
+            }}
+            defaultValue={value ?? ""}
+            render={({
+              field: { value, onChange, onBlur, ...rest },
+              fieldState: { error, invalid },
+              // formState: { isSubmitting },
+            }) => (
+              <div className="flex flex-col gap-2">
+                <Label className="ellipsis" title={label}>
+                  {label}
+                  {!!validations?.mandatory && (
+                    <span className="text-red-500">*</span>
+                  )}
+                </Label>
+                <AutoSelect
+                  // options={renderOpt}
+                  className={!!invalid ? "[&>div]:bg-red-500/20" : ""}
+                  menuPosition="fixed"
+                  onBlur={onBlur}
+                  placeholder="Select an option"
+                  menuPortalTarget={menuPortalTarget}
+                  menuShouldBlockScroll
+                  isDisabled={rest.disabled}
+                  {...rest}
+                  defaultValue={value && { label: value, value: value }}
+                  onChange={(val: any) => {
+                    onChange(val?.value);
+                    form.setValue(fieldName, val?.value);
+                    setDependantValue(val?.value);
+                  }}
+                />
+                {
+                  <p className="text-red-500 font-sans text-xs font-semibold ">
+                    {error?.message}
+                  </p>
+                }
+              </div>
+            )}
+          />
+        </div>
+
+        {!!dependantElements?.length && (
+          <div className="col-span-12">
+            {dependantElements?.map((a: Field, i: number) => (
+              <FormRenderer field={a} ind={i} parentName={fieldName} />
+            ))}
+          </div>
+        )}
+      </>
+    );
+  }
+);
+
+DropDownField.displayName = "CommandInputField";
 
 // Date picker
 const DatePickerField: React.FC<FieldRenderProps> = memo(

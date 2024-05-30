@@ -2,48 +2,18 @@ import qrCode from "@/assets/qr_visa_img.0c49a04e.png";
 import MobileCarousel from "@/components/custom/MobileCarousel";
 import { Separator } from "@/components/ui/separator";
 // import Logo from "../assets/logo.svg";
+import { getEnterpriseData } from "@/actions/global-actions";
 import Logo from "@/components/custom/Logo";
-import { baseUrl } from "@/config/baseUrl";
-import { headers } from "next/headers";
-import * as API from '@/services/api'
 
 const qrCodeSrc: string = qrCode.src;
 
-const getEnterpriseData = async () => {
-  try {
-    const response = await fetch(
-      `${baseUrl}${API.getEnterpriseAccountHostDetails}?domain_host=cp-vi-stage.visaero.com`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch enterprise data");
-    }
-
-    const result = await response.json();
-    console.log("Enterprise data:", result);
-    return result?.dataobj;
-  } catch (error) {
-    console.error("Error fetching enterprise data:", error);
-    return null; // Or throw the error further
-  }
-};
-
 export default async function Home() {
   const enterpriseData = await getEnterpriseData();
-  const logo: string = enterpriseData?.brand_logo;
+  const logo: string  = enterpriseData?.brand_logo;
 
   console.log("enterpriseData", enterpriseData);
-  const headersList = headers();
-
-  console.log("logo", logo);
-  let host = headersList.get("host"); // to get domain
-  console.log(host)
+//   console.log("logo", logo);
+  
   return (
     <div className="flex justify-center items-center h-full w-full relative">
       <div className="absolute top-0 w-full px-3 py-2 bg-slate-50/20">
@@ -69,4 +39,3 @@ export default async function Home() {
     </div>
   );
 }
-

@@ -10,7 +10,7 @@ export interface enterpriseObj {
 }
 
 
-export interface enterpriseDataObj {
+export interface EnterpriseData {
   _id: string;
   enterprise_account_id: string;
   type: string;

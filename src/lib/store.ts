@@ -1,4 +1,5 @@
 import { create } from "zustand";
+// @ts-expect-error
 import { v4 as uuid } from "uuid";
 import { persist } from "zustand/middleware";
 import { Column } from "@/components/kanban/board-column";

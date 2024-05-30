@@ -1,4 +1,4 @@
-// "use client";
+"use client";
 
 import Link from "next/link";
 import { Button } from "../ui/button";
@@ -9,11 +9,14 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "../ui/carousel";
+import { usePathname } from "next/navigation";
 
 type Props = {};
 
 const MobileCarousel = (props: Props) => {
-  
+  const path = usePathname();
+
+  console.log(path);
   return (
     <div className="flex items-center justify-center">
       <div className="w-3/5 h-4/5 m-0">
@@ -49,7 +52,7 @@ const MobileCarousel = (props: Props) => {
           <CarouselPrevious />
           <CarouselNext />
         </Carousel>
-        <Link href={"new-visa"}>
+        <Link href={`${path}/new-visa`}>
           <Button variant={"white"} size={"full"} rounded={"full"}>
             Get Started
           </Button>

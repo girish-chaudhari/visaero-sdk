@@ -7,6 +7,7 @@ import { Card } from "../ui/card";
 import VisaCardComponent from "./VisaCardComponent";
 import { IPData } from "@/types";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 interface Nationality {
   name: string;
@@ -16,21 +17,23 @@ interface Nationality {
 }
 
 type Props = {
-  nationalities: Nationality[],
-  ipData: IPData | null
+  nationalities: Nationality[];
+  ipData: IPData | null;
 };
 
 const VisaColumnsLayout = (props: Props) => {
+  const path = usePathname();
   const { nationalities, ipData } = props;
-  let opt = nationalities.find(x => x?.cioc === ipData?.country_code_iso3)
+  let opt = nationalities.find((x) => x?.cioc === ipData?.country_code_iso3);
   const [colLayout, setColLayout] = useState(1);
+  console.log(path);
 
   const [isLoading, setLoading] = useState(false);
   const [isDisabled, setDisbled] = useState(false);
   const [value, setValue] = useState<Option>({
     label: opt?.name ?? "",
     value: opt?.name ?? "",
-    ...(opt ?? {})
+    ...(opt ?? {}),
   });
 
   const delay = (ms: number = 1500) => {
@@ -165,8 +168,8 @@ const VisaColumnsLayout = (props: Props) => {
         </VisaCardComponent>
       </div>
       <Card className="w-full flex items-center justify-end p-3 rounded-b-none ">
-        <Link href='/new-visa/review'>
-        <Button variant={"destructive"}>Proceed</Button>
+        <Link href={path + "/review"}>
+          <Button variant={"destructive"}>Proceed</Button>
         </Link>
       </Card>
     </div>
