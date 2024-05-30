@@ -2,8 +2,9 @@ import { cn } from "@/lib/utils";
 import type { Metadata } from "next";
 import { Inter as FontSans } from "next/font/google";
 import "./globals.css";
-import Providers from "./providers";
-import ThemeProvider from "@/components/custom/ThemeProvider";
+import Providers from "@/components/layout/providers";
+import { getServerSession } from "next-auth";
+import { Toaster } from "@/components/ui/toaster";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -12,14 +13,16 @@ const fontSans = FontSans({
 export const metadata: Metadata = {
   title: "Visaero SDK Portal",
   description:
-    "Visaero - The portal which gives you the ability to integrate the web portal in your portal as a module",
+    "Visaero - The portal which gives you the ability to integrate the web module, whitelabel solutions, PWA and more...",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getServerSession();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head />
@@ -30,16 +33,14 @@ export default function RootLayout({
         )}
       >
         <main className="h-screen w-screen bg-primary">
-          <Providers>
-            {/* <ThemeProvider> */}
-              {
-            children}
-            {/* </ThemeProvider> */}
+          <Providers session={session}>
+            <Toaster />
+            {children}
           </Providers>
         </main>
-        {
-          process.env.NODE_ENV === "development" && <script src="http://localhost:8097"></script>
-        }
+        {process.env.NODE_ENV === "development" && (
+          <script src="http://localhost:8097"></script>
+        )}
       </body>
     </html>
   );
