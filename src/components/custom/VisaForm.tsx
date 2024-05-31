@@ -1,6 +1,6 @@
 "use client";
 
-import { Controller, useFormContext } from "react-hook-form";
+import { Controller, useFieldArray, useFormContext } from "react-hook-form";
 import InputMask from "react-input-mask";
 
 import { Input } from "@/components/ui/input";
@@ -123,19 +123,27 @@ interface FormRendererProps {
   field: Field;
   ind: number;
   parentName: string;
+  isPartOfSubGroup?: boolean;
 }
 
-type FieldType = "subGroup" | "textField" | "dropdown" | "dateControl" | "commandInput" | "hidden" | "default";
+type FieldType =
+  | "subGroup"
+  | "textField"
+  | "dropdown"
+  | "dateControl"
+  | "commandInput"
+  | "hidden"
+  | "default";
 
 const FormRenderer: React.FC<FormRendererProps> = memo(
-  ({ field, ind, parentName }) => {
+  ({ field, ind, parentName, isPartOfSubGroup = false }) => {
     // const { type } = field;
     let fieldType: FieldType | string = field?.type;
 
-
     fieldType =
       field?.validations && !!!field.validations?.display
-        ? "hidden" : field?.type;
+        ? "hidden"
+        : field?.type;
     //   ? "hidden"
     //   // : (field?.options ?? [])?.length > 30
     //   // ? "commandInput"
@@ -144,16 +152,40 @@ const FormRenderer: React.FC<FormRendererProps> = memo(
     const InputView = useMemo(() => {
       switch (fieldType) {
         case "subGroup":
-          return <SubGroup field={field} key={ind} parentName={parentName} />;
+          return (
+            <SubGroup
+              field={field}
+              key={ind}
+              parentName={parentName}
+              isPartOfSubGroup={isPartOfSubGroup}
+            />
+          );
         case "textField":
-          return <InputField field={field} key={ind} parentName={parentName} />;
+          return (
+            <InputField
+              field={field}
+              key={ind}
+              parentName={parentName}
+              isPartOfSubGroup={isPartOfSubGroup}
+            />
+          );
         case "dropdown":
           return (
-            <DropDownField field={field} key={ind} parentName={parentName} />
+            <DropDownField
+              field={field}
+              key={ind}
+              parentName={parentName}
+              isPartOfSubGroup={isPartOfSubGroup}
+            />
           );
         case "dateControl":
           return (
-            <DatePickerField field={field} key={ind} parentName={parentName} />
+            <DatePickerField
+              field={field}
+              key={ind}
+              parentName={parentName}
+              isPartOfSubGroup={isPartOfSubGroup}
+            />
           );
         case "commandInput":
           return (
@@ -161,14 +193,27 @@ const FormRenderer: React.FC<FormRendererProps> = memo(
               field={field}
               key={ind}
               parentName={parentName}
+              isPartOfSubGroup={isPartOfSubGroup}
             />
           );
         case "hidden":
           return (
-            <HiddenField field={field} key={ind} parentName={parentName} />
+            <HiddenField
+              field={field}
+              key={ind}
+              parentName={parentName}
+              isPartOfSubGroup={isPartOfSubGroup}
+            />
           );
         default:
-          return <InputField field={field} key={ind} parentName={parentName} />;
+          return (
+            <InputField
+              field={field}
+              key={ind}
+              parentName={parentName}
+              isPartOfSubGroup={isPartOfSubGroup}
+            />
+          );
       }
     }, []);
 
@@ -182,16 +227,22 @@ interface SubGroupProps {
   field: Field;
   children?: React.ReactNode;
   parentName?: string;
+  isPartOfSubGroup?: boolean;
 }
 interface FieldRenderProps {
   field: Field;
   parentName?: string;
+  isPartOfSubGroup?: boolean;
 }
 
 const SubGroup: React.FC<SubGroupProps> = ({ field, parentName }) => {
   const { name, label, sub_group_elements } = field;
-
+  const { control } = useFormContext();
   const fieldName: string = `${parentName}-${name}`;
+  const { fields, append, remove } = useFieldArray({
+    name: fieldName,
+    control,
+  });
 
   return (
     <Card className={`overflow-hidden`}>
@@ -202,11 +253,18 @@ const SubGroup: React.FC<SubGroupProps> = ({ field, parentName }) => {
       <Separator />
       <CardContent className="grid grid-cols-3 gap-4 px-3 pt-3">
         {!!sub_group_elements?.length
-          ? sub_group_elements.map((x: any) =>
-              x?.map((a: Field, i: number) => (
-                <FormRenderer field={a} ind={i} parentName={fieldName} />
-              ))
-            )
+          ? sub_group_elements.map((x: any, ind: number) => {
+              let fieldNameStr: string = `${fieldName}.${ind}`;
+              return x?.map((a: Field, i: number) => (
+                <FormRenderer
+                  field={a}
+                  ind={i}
+                  key={i}
+                  parentName={fieldNameStr}
+                  isPartOfSubGroup={true}
+                />
+              ));
+            })
           : null}
       </CardContent>
     </Card>
@@ -217,11 +275,13 @@ SubGroup.displayName = "SubGroup";
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 const HiddenField: React.FC<FieldRenderProps> = memo(
-  ({ field, parentName }) => {
+  ({ field, parentName, isPartOfSubGroup }) => {
     const form = useFormContext(); // retrieve all hook methods
     const { name, label, validations, value } = field;
 
-    const fieldName: string = `${parentName}-${name}`;
+    const fieldName: string = isPartOfSubGroup
+      ? `${parentName}.${name}`
+      : `${parentName}-${name}`;
 
     return (
       <Controller
@@ -252,11 +312,13 @@ const HiddenField: React.FC<FieldRenderProps> = memo(
 
 HiddenField.displayName = "HiddenField";
 
-const InputField: React.FC<FieldRenderProps> = memo(({ field, parentName }) => {
+const InputField: React.FC<FieldRenderProps> = memo(({ field, parentName, isPartOfSubGroup }) => {
   const form = useFormContext(); // retrieve all hook methods
   const { name, label, validations, value, type } = field;
 
-  const fieldName: string = `${parentName}-${name}`;
+  const fieldName: string = isPartOfSubGroup
+  ? `${parentName}.${name}`
+  : `${parentName}-${name}`;
 
   const isDigit = (value: string) => {
     const digitRegex = /^\d+$/;
@@ -343,7 +405,7 @@ const InputField: React.FC<FieldRenderProps> = memo(({ field, parentName }) => {
 InputField.displayName = "InputField";
 
 const DropDownField: React.FC<FieldRenderProps> = memo(
-  ({ field, parentName }) => {
+  ({ field, parentName, isPartOfSubGroup }) => {
     const [dependatValue, setDependantValue] = useState<String>("");
     const [menuPortalTarget, setMenuPortalTarget] =
       useState<null | HTMLElement>(null);
@@ -357,7 +419,9 @@ const DropDownField: React.FC<FieldRenderProps> = memo(
       dependent_elements = [],
     } = field;
 
-    const fieldName: string = `${parentName}-${name}`;
+    const fieldName: string = isPartOfSubGroup
+    ? `${parentName}.${name}`
+    : `${parentName}-${name}`;
 
     // const getStateValue = useMemo(
     //   () => form.watch(fieldName),
@@ -371,7 +435,7 @@ const DropDownField: React.FC<FieldRenderProps> = memo(
       [dependatValue]
     );
 
-    console.log("dependantElements", dependantElements);
+    // console.log("dependantElements", dependantElements);
 
     useEffect(() => {
       if (typeof document !== "undefined") {
@@ -379,9 +443,9 @@ const DropDownField: React.FC<FieldRenderProps> = memo(
       }
     }, []);
 
-    useEffect(()=> {
-      setDependantValue(field?.value ?? "")
-    },[field])
+    useEffect(() => {
+      setDependantValue(field?.value ?? "");
+    }, [field]);
 
     let renderOpt = options?.map((x: string) => ({
       label: x,
@@ -460,7 +524,7 @@ const DropDownField: React.FC<FieldRenderProps> = memo(
 DropDownField.displayName = "DropDownField";
 
 const CommandInputField: React.FC<FieldRenderProps> = memo(
-  ({ field, parentName }) => {
+  ({ field, parentName, isPartOfSubGroup}) => {
     const [dependatValue, setDependantValue] = useState<String>("");
     const [open, setOpen] = useState<boolean>(false);
     const [menuPortalTarget, setMenuPortalTarget] =
@@ -475,7 +539,9 @@ const CommandInputField: React.FC<FieldRenderProps> = memo(
       dependent_elements = [],
     } = field;
 
-    const fieldName: string = `${parentName}-${name}`;
+    const fieldName: string = isPartOfSubGroup
+    ? `${parentName}.${name}`
+    : `${parentName}-${name}`;
 
     const dependantElements = useMemo(
       () =>
@@ -549,14 +615,16 @@ DropDownField.displayName = "CommandInputField";
 
 // Date picker
 const DatePickerField: React.FC<FieldRenderProps> = memo(
-  ({ field, parentName }) => {
+  ({ field, parentName, isPartOfSubGroup }) => {
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const form = useFormContext(); // retrieve all hook methods
     const { name, label, validations, value } = field;
 
-    const fieldName = `${parentName}-${name}`;
+    const fieldName: string = isPartOfSubGroup
+    ? `${parentName}.${name}`
+    : `${parentName}-${name}`;
 
     const checkMinMaxDate: WhenType = validations?.when || "before"; // Providing a default value of 'before' if validations?.when is undefined
 
