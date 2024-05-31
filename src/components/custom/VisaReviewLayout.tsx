@@ -11,7 +11,7 @@ import { Skeleton } from "../ui/skeleton";
 import ApplicationDetails from "./ApplicationDetails";
 import DocumentsCard from "./DocumentsCard";
 import { VisaForm } from "./VisaForm";
-import { submitVisaForm } from "@/actions/review";
+import { saveVisaForm } from "@/actions/review";
 
 type Props = {
   formData: any;
@@ -23,13 +23,15 @@ const VisaReviewLayout: React.FC<Props> = ({ formData, dataDictionary }) => {
   const [isPending, startTransition] = useTransition();
   const [activeApplicant, setactiveApplicant] = useState<number | string>("");
 
+  console.log("formData >>", formData)
+
   const onSubmit = (data: any) => {
     startTransition(() => {
       return new Promise<void>((resolve) => {
         setTimeout(() => {
-          submitVisaForm(data);
+          saveVisaForm(data);
           console.log("data >>", data);
-          alert(JSON.stringify(data));
+          // alert(JSON.stringify(data));
           resolve();
         }, 2000);
       });
@@ -112,64 +114,14 @@ const VisaReviewLayout: React.FC<Props> = ({ formData, dataDictionary }) => {
             </div>
           </div>
           <Card className="w-full flex items-center justify-end p-3 rounded-b-none ">
-            <Button type="submit"> Confirm & Proceed</Button>
-            {/* <Button
-              type="submit"
-              variant={"destructive"}
-              loading={
-                methods.formState.isLoading ||
-                methods.formState.isSubmitting ||
-                methods.formState.isValidating ||
-                isPending
-              }
-            >
-              Confirm & Proceed
-            </Button> */}
+            <Button type="submit" loading={isPending}> Confirm & Proceed</Button>
           </Card>
         </div>
       </form>
     </Form>
   );
 
-  return (
-    <Form {...methods}>
-      <form onSubmit={methods.handleSubmit(onSubmit)}>
-        <div className="h-screen p-3 pb-0 flex flex-col overflow-hidden">
-          {/* Application details */}
-          <div className="mb-3">
-            <ApplicationDetails />
-          </div>
-          {/* Applicants Bar */}
-          <div className="mb-3">
-            <RenderApplicants />
-          </div>
-          <div className="flex gap-3 h-0 flex-1 mb-3">
-            <div className="overflow-hidden w-1/3 h-full">
-              <DocumentsCard />
-            </div>
 
-            <div className="overflow-hidden w-2/3 h-full">
-              <VisaForm formData={formData} dataDictionary={dataDictionary} />
-            </div>
-          </div>
-          <Card className="w-full flex items-center justify-end p-3 rounded-b-none ">
-            <Button
-              type="submit"
-              variant={"destructive"}
-              loading={
-                methods.formState.isLoading ||
-                methods.formState.isSubmitting ||
-                methods.formState.isValidating ||
-                isPending
-              }
-            >
-              Confirm & Proceed
-            </Button>
-          </Card>
-        </div>
-      </form>
-    </Form>
-  );
 };
 
 // export default memo(VisaReviewLayout);

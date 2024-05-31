@@ -16,6 +16,7 @@ export const getOrigin = "/brule-engine/getOriginCountries";
 export const getTravellingto = "brule-engine/getTravellingTo";
 export const getSupportedCurrencies = "/visa-admin/getSupportedCurrencies";
 export const getVisaOffers = "/visa/getVisaOffers";
+export const saveVisaForm = "/visa/getVisaOffers";
 
 const API = {
   getEnterpriseAccountHostDetails,
@@ -31,6 +32,7 @@ const API = {
   getTravellingto,
   getSupportedCurrencies,
   getVisaOffers,
+  saveVisaForm,
 };
 
 export default API;
