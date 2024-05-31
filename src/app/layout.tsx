@@ -6,6 +6,7 @@ import Providers from "@/components/layout/providers";
 import { getServerSession } from "next-auth";
 import { Toaster } from "@/components/ui/toaster";
 
+
 const fontSans = FontSans({
   subsets: ["latin"],
   variable: "--font-sans",

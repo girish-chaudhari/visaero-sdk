@@ -125,18 +125,24 @@ interface FormRendererProps {
   parentName: string;
 }
 
+type FieldType = "subGroup" | "textField" | "dropdown" | "dateControl" | "commandInput" | "hidden" | "default";
+
 const FormRenderer: React.FC<FormRendererProps> = memo(
   ({ field, ind, parentName }) => {
     // const { type } = field;
+    let fieldType: FieldType | string = field?.type;
 
-    field.type = !!!field.validations.display
-      ? "hidden"
-      // : (field?.options ?? [])?.length > 30
-      // ? "commandInput"
-      : field.type;
+
+    fieldType =
+      field?.validations && !!!field.validations?.display
+        ? "hidden" : field?.type;
+    //   ? "hidden"
+    //   // : (field?.options ?? [])?.length > 30
+    //   // ? "commandInput"
+    //   : field.type;
 
     const InputView = useMemo(() => {
-      switch (field?.type) {
+      switch (fieldType) {
         case "subGroup":
           return <SubGroup field={field} key={ind} parentName={parentName} />;
         case "textField":
@@ -365,11 +371,17 @@ const DropDownField: React.FC<FieldRenderProps> = memo(
       [dependatValue]
     );
 
+    console.log("dependantElements", dependantElements);
+
     useEffect(() => {
       if (typeof document !== "undefined") {
         setMenuPortalTarget(document.querySelector("body"));
       }
     }, []);
+
+    useEffect(()=> {
+      setDependantValue(field?.value ?? "")
+    },[field])
 
     let renderOpt = options?.map((x: string) => ({
       label: x,
@@ -477,15 +489,9 @@ const CommandInputField: React.FC<FieldRenderProps> = memo(
       }
     }, []);
 
-    // let renderOpt = options?.map((x: string) => ({
-    //   label: x,
-    //   value: x,
-    // }));
-
     return (
       <>
         <Controller
-          // disabled={!!validations?.read_only || isLoading}
           disabled={!!validations?.read_only}
           rules={{
             required: !!validations?.mandatory && label + " is required",
@@ -527,81 +533,13 @@ const CommandInputField: React.FC<FieldRenderProps> = memo(
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup heading="Suggestions">
               {options?.map((x: string, i: number) => (
-                <CommandItem>
-                  <span>Calendar</span>
+                <CommandItem value={x}>
+                  <span>{x}</span>
                 </CommandItem>
               ))}
             </CommandGroup>
           </CommandList>
         </CommandDialog>
-      </>
-    );
-
-    return (
-      <>
-        <div
-          className={
-            !!dependent_elements?.length
-              ? "col-span-12 grid grid-cols-3 gap-4 p-2"
-              : ""
-          }
-        >
-          <Controller
-            control={form.control}
-            name={fieldName}
-            // disabled={!!validations?.read_only || isLoading}
-            disabled={!!validations?.read_only}
-            rules={{
-              required: !!validations?.mandatory && label + " is required",
-              minLength: validations?.min_length,
-            }}
-            defaultValue={value ?? ""}
-            render={({
-              field: { value, onChange, onBlur, ...rest },
-              fieldState: { error, invalid },
-              // formState: { isSubmitting },
-            }) => (
-              <div className="flex flex-col gap-2">
-                <Label className="ellipsis" title={label}>
-                  {label}
-                  {!!validations?.mandatory && (
-                    <span className="text-red-500">*</span>
-                  )}
-                </Label>
-                <AutoSelect
-                  // options={renderOpt}
-                  className={!!invalid ? "[&>div]:bg-red-500/20" : ""}
-                  menuPosition="fixed"
-                  onBlur={onBlur}
-                  placeholder="Select an option"
-                  menuPortalTarget={menuPortalTarget}
-                  menuShouldBlockScroll
-                  isDisabled={rest.disabled}
-                  {...rest}
-                  defaultValue={value && { label: value, value: value }}
-                  onChange={(val: any) => {
-                    onChange(val?.value);
-                    form.setValue(fieldName, val?.value);
-                    setDependantValue(val?.value);
-                  }}
-                />
-                {
-                  <p className="text-red-500 font-sans text-xs font-semibold ">
-                    {error?.message}
-                  </p>
-                }
-              </div>
-            )}
-          />
-        </div>
-
-        {!!dependantElements?.length && (
-          <div className="col-span-12">
-            {dependantElements?.map((a: Field, i: number) => (
-              <FormRenderer field={a} ind={i} parentName={fieldName} />
-            ))}
-          </div>
-        )}
       </>
     );
   }

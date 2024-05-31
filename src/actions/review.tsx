@@ -18,9 +18,9 @@ export const getReviewVisaForm = cache(async (): Promise<any | null> => {
     const response = await axios.post<VisaFormResponse>(
       "/visa/getReviewFormForApplicant",
       {
-        applicant_id: "665357ceba007f4318b669c2",
+        applicant_id: "665949200f651e0a8bf691c5",
         name: "visa_form_template",
-        travelling_to_identity: "IND_IND_ARE",
+        travelling_to_identity: "IND_IND_KEN",
         structure: "new",
       },
       {
