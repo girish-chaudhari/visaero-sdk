@@ -1,9 +1,6 @@
 // import { getReviewVisaForm } from "@/actions/review";
 import { getReviewVisaForm } from "@/actions/review";
 import VisaReviewLayout from "@/components/custom/VisaReviewLayout";
-import axios from "@/config";
-import { unstable_cache as cache } from "next/cache";
-import React from "react";
 
 type Props = {};
 

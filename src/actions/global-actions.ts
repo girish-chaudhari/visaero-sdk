@@ -4,7 +4,7 @@ import axios from "@/config";
 import defaultAxios from "axios";
 import API from "@/services/api";
 import { EnterpriseData } from "@/types";
-import { headers } from "next/headers";
+import { DOMAIN_HOST } from ".";
 
 interface EnterpriseDataResponse {
   data: string;
@@ -13,20 +13,14 @@ interface EnterpriseDataResponse {
 
 export const getEnterpriseData = async (): Promise<EnterpriseData> => {
   try {
-    const headersList = headers();
-
-    let host = headersList.get("host"); // to get domain
-    console.log("header", host);
-
-    let domain_host: string | null = host?.includes("localhost")
-      ? "cp.visaero.com"
-      : host;
+    // to get domain
+    console.log("header", DOMAIN_HOST);
 
     const { data }: { data: EnterpriseDataResponse } = await axios.get(
       API.getEnterpriseAccountHostDetails,
       {
         params: {
-          domain_host,
+          domain_host: DOMAIN_HOST,
         },
       }
     );

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getEnterpriseAccount, ipApi, verifySession } from ".";
+import { getEnterpriseAccount, ipApi, verifySession } from "../states";
 
 export const useEnterpriseAccount = (domain_host: string) => {
   return useQuery({

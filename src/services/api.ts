@@ -13,7 +13,7 @@ export const ipApi = "https://ipapi.co/json/";
 
 export const getNationalities = "/brule-engine/getNationalities";
 export const getOrigin = "/brule-engine/getOriginCountries";
-export const getTravellingto = "brule-engine/getTravellingTo";
+export const getTravellingto = "/brule-engine/getTravellingTo";
 export const getSupportedCurrencies = "/visa-admin/getSupportedCurrencies";
 export const getVisaOffers = "/visa/getVisaOffers";
 export const saveVisaForm = "/visa/getVisaOffers";

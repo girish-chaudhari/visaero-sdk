@@ -1,6 +1,6 @@
 
 import axios, { noConfig } from "@/config/";
-import * as API from "./api";
+import * as API from "../services/api";
 import { baseUrl } from "@/config/baseUrl";
 import { AxiosResponse } from "axios";
 import { enterpriseObj } from "@/types";
@@ -126,6 +126,8 @@ export const getTravellingTo = async ({
     user_id,
   });
 };
+
+
 export const getVisaOffers = async (data: any) => {
   // console.log(data)
   return axios.post(API.getVisaOffers, {
