@@ -1,29 +1,30 @@
-import { Command as CommandPrimitive } from "cmdk"
-import { useCallback, useRef, useState, type KeyboardEvent } from "react"
+import { Command as CommandPrimitive } from "cmdk";
+import { useCallback, useRef, useState, type KeyboardEvent } from "react";
 import {
   CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
-} from "./command"
+} from "./command";
 
-import { Skeleton } from "./skeleton"
+import { Skeleton } from "./skeleton";
 
-import { cn } from "@/lib/utils"
-import { AutoSelectInput } from "@/types"
+import { cn } from "@/lib/utils";
+import { AutoSelectInput } from "@/types";
 
-export type Option = Record<"value" | "label", string> & Record<string, string>
+export type Option = Record<"value" | "label", string> & Record<string, string>;
 
 type AutoCompleteProps = AutoSelectInput & {
-  options: Option[]
-  emptyMessage: string
-  value?: Option
-  onValueChange?: (value: Option) => void
-  isLoading?: boolean
-  disabled?: boolean
-  placeholder?: string
+  options: Option[];
+  emptyMessage: string;
+  value?: Option;
+  name: string;
+  onValueChange?: (value: Option) => void;
+  isLoading?: boolean;
+  disabled?: boolean;
+  placeholder?: string;
   renderSelectedItemIcon?: (option: Option) => React.ReactNode;
-}
+};
 
 export const AutoComplete = ({
   options,
@@ -34,80 +35,81 @@ export const AutoComplete = ({
   disabled,
   isLoading = false,
   label,
+  name,
   renderSelectedItemIcon,
   ...props
 }: AutoCompleteProps) => {
-  const inputRef = useRef<HTMLInputElement>(null)
-  const listRef = useRef<HTMLInputElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLInputElement>(null);
 
-  const [isOpen, setOpen] = useState(false)
-  const [selected, setSelected] = useState<Option>(value as Option)
-  const [inputValue, setInputValue] = useState<string>(value?.label || "")
+  const [isOpen, setOpen] = useState(false);
+  const [selected, setSelected] = useState<Option>(value as Option);
+  const [inputValue, setInputValue] = useState<string>(value?.label || "");
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {
-      const input = inputRef.current
-      const list = listRef.current
+      const input = inputRef.current;
+      const list = listRef.current;
       if (!input) {
-        return
+        return;
       }
       if (list) {
         list.scrollTop = 0;
       }
-     
 
       // Keep the options displayed when the user is typing
       if (!isOpen) {
-        setOpen(true)
+        setOpen(true);
       }
 
       // This is not a default behaviour of the <input /> field
       if (event.key === "Enter" && input.value !== "") {
         const optionToSelect = options.find(
-          (option) => option.label === input.value,
-        )
+          (option) => option.label === input.value
+        );
         if (optionToSelect) {
-          setSelected(optionToSelect)
-          onValueChange?.(optionToSelect)
+          setSelected(optionToSelect);
+          onValueChange?.(optionToSelect);
         }
       }
 
       if (event.key === "Escape") {
-        input.blur()
+        input.blur();
       }
     },
-    [isOpen, options, onValueChange],
-  )
+    [isOpen, options, onValueChange]
+  );
 
   const handleFocus = useCallback(() => {
-      setOpen(true)
-      setInputValue("")
-  }, [])
+    setOpen(true);
+    setInputValue("");
+  }, []);
 
   const handleBlur = useCallback(() => {
-    setOpen(false)
-    setInputValue(selected?.label)
-  }, [selected])
+    setOpen(false);
+    setInputValue(selected?.label);
+  }, [selected]);
 
   const handleSelectOption = useCallback(
     (selectedOption: Option) => {
-      setInputValue(selectedOption.label)
+      setInputValue(selectedOption.label);
 
-      setSelected(selectedOption)
-      onValueChange?.(selectedOption)
+      setSelected(selectedOption);
+      onValueChange?.(selectedOption);
 
       // This is a hack to prevent the input from being focused after the user selects an option
       // We can call this hack: "The next tick"
       setTimeout(() => {
-        inputRef?.current?.blur()
-      }, 0)
+        inputRef?.current?.blur();
+      }, 0);
     },
-    [onValueChange],
-  )
+    [onValueChange]
+  );
 
   return (
     <CommandPrimitive onKeyDown={handleKeyDown}>
       <div>
+        <input type="hidden" name={name} value={value?.value ?? ""} />
         <CommandInput
           ref={inputRef}
           value={inputValue}
@@ -124,7 +126,10 @@ export const AutoComplete = ({
       <div className="relative mt-1">
         {isOpen ? (
           <div className="animate-in fade-in-0 zoom-in-95 absolute top-0 z-10 w-full rounded-xl bg-stone-50 outline-none">
-            <CommandList className="rounded-lg ring-1 ring-slate-200" ref={listRef}>
+            <CommandList
+              className="rounded-lg ring-1 ring-slate-200"
+              ref={listRef}
+            >
               {isLoading ? (
                 <CommandPrimitive.Loading>
                   <div className="p-1">
@@ -135,26 +140,27 @@ export const AutoComplete = ({
               {options.length > 0 && !isLoading ? (
                 <CommandGroup>
                   {options.map((option) => {
-                    const isSelected = selected?.value === option.value
+                    const isSelected = selected?.value === option.value;
                     return (
                       <CommandItem
                         key={option.value}
                         value={option.label}
                         onMouseDown={(event) => {
-                          event.preventDefault()
-                          event.stopPropagation()
+                          event.preventDefault();
+                          event.stopPropagation();
                         }}
                         onSelect={() => handleSelectOption(option)}
                         className={cn(
-                          "flex w-full items-center gap-2 ",
+                          "flex w-full items-center gap-2 "
                           // !isSelected ? "pl-8" : null,
                         )}
                       >
-                        {renderSelectedItemIcon && renderSelectedItemIcon(option)}
+                        {renderSelectedItemIcon &&
+                          renderSelectedItemIcon(option)}
                         {option.label}
                         {/* {isSelected ? <Check className="w-4" /> : null} */}
                       </CommandItem>
-                    )
+                    );
                   })}
                 </CommandGroup>
               ) : null}
@@ -165,10 +171,12 @@ export const AutoComplete = ({
               ) : null}
             </CommandList>
           </div>
-        ) : <CommandList />}
+        ) : (
+          <CommandList />
+        )}
       </div>
     </CommandPrimitive>
-  )
-}
+  );
+};
 
-export default AutoComplete
+export default AutoComplete;

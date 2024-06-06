@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import {
+  useEffect,
+  useState,
+  useMemo,
+  SetStateAction,
+  useRef,
+  FormEvent,
+} from "react";
 import AutoComplete, { type Option } from "../ui/autocomplete";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
@@ -10,7 +17,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { delay } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { getTravellingTo } from "@/actions/new-visa";
+import { getTravellingTo, getTravellingToForm } from "@/actions/new-visa";
+import AutoSelect from "../ui/autoselect";
+import Image from "next/image";
 
 interface Nationality {
   name: string;
@@ -25,10 +34,12 @@ type Props = {
 };
 
 const VisaColumnsLayout = (props: Props) => {
+  const ref = useRef<HTMLFormElement | null>(null);
   const path = usePathname();
   const { nationalities, ipData } = props;
   let opt = nationalities.find((x) => x?.cioc === ipData?.country_code_iso3);
   const [colLayout, setColLayout] = useState(1);
+  const [isCorEnabled, setIsCorEnabled] = useState<boolean>(false);
   const [nationality, setNationality] = useState<Option>({
     label: opt?.name ?? "",
     value: opt?.name ?? "",
@@ -44,12 +55,7 @@ const VisaColumnsLayout = (props: Props) => {
   const corData: Option[] = [];
   // const travellingToData: Option[] = [];
 
-  const {
-    data: travellingToData,
-    error,
-    isLoading,
-    refetch,
-  } = useQuery({
+  const { data: travellingToData, isLoading } = useQuery({
     queryKey: [
       "getTravellingTo",
       {
@@ -64,27 +70,37 @@ const VisaColumnsLayout = (props: Props) => {
       }),
   });
 
-  console.log("travellingToData", travellingToData)
+  console.log("travellingToData", travellingToData);
 
   const travellingToOptions = useMemo(
     () =>
       travellingToData?.data == "success"
         ? travellingToData?.dataobj?.data?.map(
-            (x: { name: string; flag: string }) => ({
+            (x: {
+              managed_by?: string;
+              cor_required?: boolean;
+              identity: string;
+              flag: string;
+              name: string;
+              value: string;
+            }) => ({
               label: x?.name,
               value: x?.name,
               flag: x?.flag,
+              managed_by: x?.managed_by,
+              cor_required: !!x?.cor_required,
             })
           )
         : [],
     [travellingToData]
   );
 
-  console.log("travellingToOptions", travellingToOptions)
+  console.log("travellingToOptions", travellingToOptions);
 
   const handleNationalityChange = (opt: Option) => {
     setNationality(opt);
     setCor(opt);
+    // if (ref.current) ref.current!.submit();
   };
 
   useEffect(() => {
@@ -111,15 +127,25 @@ const VisaColumnsLayout = (props: Props) => {
     []
   );
 
-  console.log(natinoalitiesData);
+  const handleTravellingToChange = (opt: {
+    label: string;
+    value: string;
+    managed_by?: string;
+    cor_required?: boolean;
+  }) => {
+    console.log(opt);
+    setTravellingTo(opt as Option);
+    setIsCorEnabled(!!opt?.cor_required);
+  };
 
   const renderVisaTypeCard = () => (
-    <>
+    <form action={getTravellingToForm}>
       <div className="my-2">
         <AutoComplete
           options={natinoalitiesData}
           emptyMessage="No results"
           label={"Nationality"}
+          name="nationality"
           placeholder="Nationality"
           onValueChange={handleNationalityChange}
           leftIcon={
@@ -149,7 +175,8 @@ const VisaColumnsLayout = (props: Props) => {
           emptyMessage="No results"
           label={"Travelling to"}
           placeholder="Travelling to"
-          onValueChange={setTravellingTo}
+          name="travelling_to"
+          onValueChange={handleTravellingToChange}
           isLoading={isLoading}
           leftIcon={
             travellingTo?.flag && (
@@ -172,36 +199,47 @@ const VisaColumnsLayout = (props: Props) => {
           value={travellingTo}
         />
       </div>
-      <div className="my-2">
+      <div className={`my-2 ${!!isCorEnabled ? "" : "hidden"}`}>
         <AutoComplete
           options={corData}
+          name="origin"
           emptyMessage="No results"
           label={"Country of Residence"}
           placeholder="Country of Residence"
           onValueChange={setCor}
           leftIcon={
             cor?.flag && (
-              <img src={cor?.flag} height={25} width={30} className="shadow" />
+              <Image
+                alt={cor.label}
+                src={cor?.flag}
+                height={20}
+                width={30}
+                className="shadow"
+                priority
+              />
             )
           }
-          renderSelectedItemIcon={(options: any) => (
-            <img
+          renderSelectedItemIcon={(options: Option) => (
+            <Image
               src={options?.flag}
+              alt={options.label}
               height={15}
               width={20}
               className="shadow"
+              priority
             />
           )}
           value={cor}
         />
       </div>
-    </>
+      <input type="submit" className="" />
+    </form>
   );
 
   return (
     <div className="h-full p-3 pb-0 flex flex-col overflow-hidden">
       <div
-        className="flex gap-5 mb-3 h-fit flex-1 transition-all ease-out"
+        className="flex gap-5 mb-3 h-fit flex-1 transition-all ease-out duration-1000"
         style={{
           width: `calc(${100 * (3 / colLayout) + "%"} + ${
             colLayout === 1 ? 2.3 : colLayout === 2 ? 0.75 : 0
@@ -213,7 +251,7 @@ const VisaColumnsLayout = (props: Props) => {
           colLayout={colLayout}
           number={1}
         >
-          {renderVisaTypeCard()}
+          <div className="max-w-md mx-auto">{renderVisaTypeCard()}</div>
         </VisaCardComponent>
         <VisaCardComponent title="Visa Type" colLayout={colLayout} number={2}>
           testing
