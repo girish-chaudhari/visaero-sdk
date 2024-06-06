@@ -25,7 +25,7 @@ const VisaCardComponent: React.FC<Props> = ({
   // Use React.FC<Props> for functional components
   return (
     <Card
-      className={`overflow-hidden`}
+      className={`overflow-hidden `}
       style={{ width: 100 / colLayout+"%" }}
     >
       <CardHeader className="bg-gray-100">
@@ -38,7 +38,7 @@ const VisaCardComponent: React.FC<Props> = ({
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent>{children}</CardContent>
+      <CardContent className="self-start">{children}</CardContent>
     </Card>
   );
 };

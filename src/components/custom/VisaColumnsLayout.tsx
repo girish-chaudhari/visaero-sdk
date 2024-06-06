@@ -12,6 +12,7 @@ import AutoComplete, { type Option } from "../ui/autocomplete";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import VisaCardComponent from "./VisaCardComponent";
+import { Skeleton } from "../ui/skeleton";
 
 interface Nationality {
   name: string;
@@ -94,19 +95,19 @@ const VisaColumnsLayout = (props: Props) => {
     setTravellingTo(undefined);
   };
 
-  useEffect(() => {
-    // Using a loop
-    for (let i = 1; i <= 3; i++) {
-      delay(i * 1000) // Multiply by 1000 to convert seconds to milliseconds
-        .then(() => {
-          setColLayout(i);
-          console.log(`Delayed operation executed after ${i} seconds`);
-        })
-        .catch((error) => {
-          console.error("An error occurred:", error);
-        });
-    }
-  }, []);
+  // useEffect(() => {
+  //   // Using a loop
+  //   for (let i = 1; i <= 3; i++) {
+  //     delay(i * 1000) // Multiply by 1000 to convert seconds to milliseconds
+  //       .then(() => {
+  //         setColLayout(i);
+  //         console.log(`Delayed operation executed after ${i} seconds`);
+  //       })
+  //       .catch((error) => {
+  //         console.error("An error occurred:", error);
+  //       });
+  //   }
+  // }, []);
 
   const natinoalitiesData = useMemo(
     () =>
@@ -129,6 +130,7 @@ const VisaColumnsLayout = (props: Props) => {
     console.log(opt);
     setTravellingTo(opt as Option);
     setIsCorEnabled(!!opt?.cor_required);
+    setColLayout(2);
   };
 
   const renderVisaTypeCard = () => (
@@ -253,15 +255,17 @@ const VisaColumnsLayout = (props: Props) => {
         >
           <div className="max-w-md mx-auto">{renderVisaTypeCard()}</div>
         </VisaCardComponent>
-        <VisaCardComponent title="Visa Type" colLayout={colLayout} number={2}>
-          testing
+        <VisaCardComponent title="Visa Type" colLayout={colLayout} number={2} >
+          <div className="px-3 h-full max-w-md mx-auto overflow-y-auto">
+            <LoadingVisaCards />
+          </div>
         </VisaCardComponent>
         <VisaCardComponent
           title="Upload Documents"
           colLayout={colLayout}
           number={3}
         >
-          testing
+          test
         </VisaCardComponent>
       </div>
       <Card className="w-full flex items-center justify-end p-3 rounded-b-none ">
@@ -274,3 +278,16 @@ const VisaColumnsLayout = (props: Props) => {
 };
 
 export default VisaColumnsLayout;
+
+const LoadingVisaCards: React.FC = () => {
+  let cards = new Array(3).fill("");
+  return (
+    <>
+      {cards.map((_, i) => (
+        <div className="flex flex-col my-5 " key={i}>
+          <Skeleton className="h-[250px] w-full rounded-xl" />
+        </div>
+      ))}
+    </>
+  );
+};
