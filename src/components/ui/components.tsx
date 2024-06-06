@@ -37,6 +37,7 @@ export const MultiValueRemove = (props: MultiValueRemoveProps) => {
   );
 };
 export const Option = (props: OptionProps) => {
+  console.log(props)
   return (
     <components.Option {...props}>
       <div className="flex items-center justify-between overflow-x-hidden">

@@ -1,5 +1,11 @@
 import { Command as CommandPrimitive } from "cmdk";
-import { useCallback, useRef, useState, type KeyboardEvent } from "react";
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import {
   CommandGroup,
   CommandInput,
@@ -79,6 +85,9 @@ export const AutoComplete = ({
     },
     [isOpen, options, onValueChange]
   );
+  useMemo(() => {
+    setInputValue(value?.value ? selected?.label : "");
+  }, [value?.value]);
 
   const handleFocus = useCallback(() => {
     setOpen(true);
@@ -87,7 +96,7 @@ export const AutoComplete = ({
 
   const handleBlur = useCallback(() => {
     setOpen(false);
-    setInputValue(selected?.label);
+    setInputValue(value?.value ? selected?.label : "");
   }, [selected]);
 
   const handleSelectOption = useCallback(

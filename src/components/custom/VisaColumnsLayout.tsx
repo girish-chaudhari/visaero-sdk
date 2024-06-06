@@ -1,25 +1,17 @@
 "use client";
 
-import {
-  useEffect,
-  useState,
-  useMemo,
-  SetStateAction,
-  useRef,
-  FormEvent,
-} from "react";
+import { getTravellingTo } from "@/actions/new-visa";
+import { delay } from "@/lib/utils";
+import { IPData } from "@/types";
+import { useQuery } from "@tanstack/react-query";
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import AutoComplete, { type Option } from "../ui/autocomplete";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import VisaCardComponent from "./VisaCardComponent";
-import { IPData } from "@/types";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { delay } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
-import { getTravellingTo, getTravellingToForm } from "@/actions/new-visa";
-import AutoSelect from "../ui/autoselect";
-import Image from "next/image";
 
 interface Nationality {
   name: string;
@@ -34,7 +26,7 @@ type Props = {
 };
 
 const VisaColumnsLayout = (props: Props) => {
-  const ref = useRef<HTMLFormElement | null>(null);
+  // const ref = useRef<HTMLFormElement | null>(null);
   const path = usePathname();
   const { nationalities, ipData } = props;
   let opt = nationalities.find((x) => x?.cioc === ipData?.country_code_iso3);
@@ -45,14 +37,13 @@ const VisaColumnsLayout = (props: Props) => {
     value: opt?.name ?? "",
     ...(opt ?? {}),
   });
-  const [travellingTo, setTravellingTo] = useState<Option>();
+  const [travellingTo, setTravellingTo] = useState<Option | undefined>();
   const [cor, setCor] = useState<Option>({
     label: opt?.name ?? "",
     value: opt?.name ?? "",
     ...(opt ?? {}),
   });
 
-  const corData: Option[] = [];
   // const travellingToData: Option[] = [];
 
   const { data: travellingToData, isLoading } = useQuery({
@@ -60,7 +51,7 @@ const VisaColumnsLayout = (props: Props) => {
       "getTravellingTo",
       {
         nationality: nationality?.value as string,
-        origin: cor?.value as string,
+        origin: nationality?.value as string,
       },
     ],
     queryFn: () =>
@@ -100,7 +91,7 @@ const VisaColumnsLayout = (props: Props) => {
   const handleNationalityChange = (opt: Option) => {
     setNationality(opt);
     setCor(opt);
-    // if (ref.current) ref.current!.submit();
+    setTravellingTo(undefined);
   };
 
   useEffect(() => {
@@ -127,6 +118,8 @@ const VisaColumnsLayout = (props: Props) => {
     []
   );
 
+  const corData = structuredClone(natinoalitiesData);
+
   const handleTravellingToChange = (opt: {
     label: string;
     value: string;
@@ -139,7 +132,7 @@ const VisaColumnsLayout = (props: Props) => {
   };
 
   const renderVisaTypeCard = () => (
-    <form action={getTravellingToForm}>
+    <>
       <div className="my-2">
         <AutoComplete
           options={natinoalitiesData}
@@ -150,20 +143,24 @@ const VisaColumnsLayout = (props: Props) => {
           onValueChange={handleNationalityChange}
           leftIcon={
             nationality?.flag && (
-              <img
+              <Image
                 src={nationality?.flag}
-                height={25}
+                alt={nationality?.label}
+                height={20}
                 width={30}
                 className="shadow"
+                priority
               />
             )
           }
-          renderSelectedItemIcon={(options: any) => (
-            <img
-              src={options?.flag}
-              height={15}
-              width={20}
+          renderSelectedItemIcon={(option: any) => (
+            <Image
+              src={option?.flag}
+              alt={option?.label}
+              height={20}
+              width={30}
               className="shadow"
+              priority
             />
           )}
           value={nationality}
@@ -180,20 +177,24 @@ const VisaColumnsLayout = (props: Props) => {
           isLoading={isLoading}
           leftIcon={
             travellingTo?.flag && (
-              <img
+              <Image
                 src={travellingTo?.flag}
-                height={25}
+                alt={travellingTo?.label}
+                height={20}
                 width={30}
                 className="shadow"
+                priority
               />
             )
           }
           renderSelectedItemIcon={(options: any) => (
-            <img
+            <Image
               src={options?.flag}
-              height={15}
-              width={20}
+              alt={options?.label}
+              height={20}
+              width={30}
               className="shadow"
+              priority
             />
           )}
           value={travellingTo}
@@ -232,8 +233,7 @@ const VisaColumnsLayout = (props: Props) => {
           value={cor}
         />
       </div>
-      <input type="submit" className="" />
-    </form>
+    </>
   );
 
   return (
