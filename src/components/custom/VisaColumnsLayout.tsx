@@ -1,18 +1,25 @@
 "use client";
 
-import { getTravellingTo } from "@/actions/new-visa";
-import { delay } from "@/lib/utils";
+import { getTravellingTo, getVisaOffers } from "@/actions/new-visa";
 import { IPData } from "@/types";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import AutoComplete, { type Option } from "../ui/autocomplete";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
-import VisaCardComponent from "./VisaCardComponent";
 import { Skeleton } from "../ui/skeleton";
+import VisaCardComponent from "./VisaCardComponent";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import AutoSelect from "../ui/autoselect";
 
 interface Nationality {
   name: string;
@@ -27,6 +34,18 @@ type Props = {
 };
 
 const VisaColumnsLayout = (props: Props) => {
+  const getTravellingToData = useMutation({
+    mutationKey: ["getVisaOffers"],
+    mutationFn: () =>
+      getVisaOffers({
+        currency: "USD",
+        managed_by: "master",
+        nationality: nationality.value as string,
+        travelling_to: travellingTo!.value,
+        travelling_to_identity: travellingTo!.identity,
+        type: "qr-visa",
+      }),
+  });
   // const ref = useRef<HTMLFormElement | null>(null);
   const path = usePathname();
   const { nationalities, ipData } = props;
@@ -81,6 +100,7 @@ const VisaColumnsLayout = (props: Props) => {
               flag: x?.flag,
               managed_by: x?.managed_by,
               cor_required: !!x?.cor_required,
+              identity: x.identity,
             })
           )
         : [],
@@ -89,10 +109,12 @@ const VisaColumnsLayout = (props: Props) => {
 
   console.log("travellingToOptions", travellingToOptions);
 
-  const handleNationalityChange = (opt: Option) => {
+  const handleNationalityChange = (opt: unknown | Option, ) => {
     setNationality(opt);
     setCor(opt);
     setTravellingTo(undefined);
+    setColLayout(1);
+    setIsCorEnabled(false);
   };
 
   // useEffect(() => {
@@ -115,6 +137,7 @@ const VisaColumnsLayout = (props: Props) => {
         label: x?.name,
         value: x?.name,
         flag: x?.flag,
+        icon: x?.flag,
       })) ?? [],
     []
   );
@@ -131,40 +154,41 @@ const VisaColumnsLayout = (props: Props) => {
     setTravellingTo(opt as Option);
     setIsCorEnabled(!!opt?.cor_required);
     setColLayout(2);
+    getTravellingToData.mutate();
   };
 
   const renderVisaTypeCard = () => (
     <>
       <div className="my-2">
-        <AutoComplete
+        <AutoSelect
           options={natinoalitiesData}
-          emptyMessage="No results"
-          label={"Nationality"}
+          // emptyMessage="No results"
+          // label={"Nationality"}
           name="nationality"
           placeholder="Nationality"
-          onValueChange={handleNationalityChange}
-          leftIcon={
-            nationality?.flag && (
-              <Image
-                src={nationality?.flag}
-                alt={nationality?.label}
-                height={20}
-                width={30}
-                className="shadow"
-                priority
-              />
-            )
-          }
-          renderSelectedItemIcon={(option: any) => (
-            <Image
-              src={option?.flag}
-              alt={option?.label}
-              height={20}
-              width={30}
-              className="shadow"
-              priority
-            />
-          )}
+          onChange={handleNationalityChange}
+          // leftIcon={
+          //   nationality?.flag && (
+          //     <Image
+          //       src={nationality?.flag}
+          //       alt={nationality?.label}
+          //       height={20}
+          //       width={30}
+          //       className="shadow"
+          //       priority
+          //     />
+          //   )
+          // }
+          // renderSelectedItemIcon={(option: any) => (
+          //   <Image
+          //     src={option?.flag}
+          //     alt={option?.label}
+          //     height={20}
+          //     width={30}
+          //     className="shadow"
+          //     priority
+          //   />
+          // )}
           value={nationality}
         />
       </div>
@@ -209,7 +233,10 @@ const VisaColumnsLayout = (props: Props) => {
           emptyMessage="No results"
           label={"Country of Residence"}
           placeholder="Country of Residence"
-          onValueChange={setCor}
+          onValueChange={(opt: Option) => {
+            setCor(opt);
+            getTravellingToData.mutate();
+          }}
           leftIcon={
             cor?.flag && (
               <Image
@@ -241,7 +268,7 @@ const VisaColumnsLayout = (props: Props) => {
   return (
     <div className="h-full p-3 pb-0 flex flex-col overflow-hidden">
       <div
-        className="flex gap-5 mb-3 h-fit flex-1 transition-all ease-out duration-1000"
+        className="flex gap-5 mb-3 flex-1 transition-all h-[calc(100vh-6rem)] ease-out duration-1000 "
         style={{
           width: `calc(${100 * (3 / colLayout) + "%"} + ${
             colLayout === 1 ? 2.3 : colLayout === 2 ? 0.75 : 0
@@ -255,9 +282,26 @@ const VisaColumnsLayout = (props: Props) => {
         >
           <div className="max-w-md mx-auto">{renderVisaTypeCard()}</div>
         </VisaCardComponent>
-        <VisaCardComponent title="Visa Type" colLayout={colLayout} number={2} >
-          <div className="px-3 h-full max-w-md mx-auto overflow-y-auto">
-            <LoadingVisaCards />
+        <VisaCardComponent title="Visa Type" colLayout={colLayout} number={2}>
+          <div className="px-3 max-w-md mx-auto ">
+            {getTravellingToData.isPending ? (
+              <LoadingVisaCards />
+            ) : (
+              <>
+                <div className="my-3 flex justify-end">
+                  <Select>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Theme" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="light">Light</SelectItem>
+                      <SelectItem value="dark">Dark</SelectItem>
+                      <SelectItem value="system">System</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
           </div>
         </VisaCardComponent>
         <VisaCardComponent

@@ -4,6 +4,8 @@ import type {
   DropdownIndicatorProps,
   MultiValueRemoveProps,
   OptionProps,
+  InputProps,
+  ValueContainerProps,
 } from "react-select";
 import { components } from "react-select";
 import { FixedSizeList as List } from "react-window";
@@ -13,7 +15,10 @@ import {
   CheckIcon,
   Cross2Icon as CloseIcon,
 } from "@radix-ui/react-icons";
-import { Input, InputProps } from "./input";
+// import { Input, InputProps } from "./input";
+import Image from "next/image";
+import { cn } from "@/lib/utils";
+import { Search } from "lucide-react";
 
 export const DropdownIndicator = (props: DropdownIndicatorProps) => {
   return (
@@ -37,29 +42,81 @@ export const MultiValueRemove = (props: MultiValueRemoveProps) => {
   );
 };
 export const Option = (props: OptionProps) => {
-  console.log(props)
   return (
     <components.Option {...props}>
       <div className="flex items-center justify-between overflow-x-hidden">
-        {/* @ts-expect-error */}
-        <div>{props!.data!.label}</div>
+        <div className="flex items-center gap-2">
+          {/* @ts-expect-error */}
+          {props!.data!.icon && (
+            // @ts-ignore
+            <Image height={18} width={24} src={props!.data!.icon} />
+          )}
+          {/* @ts-expect-error */}
+          {props!.data!.label}
+        </div>
         {props.isSelected && <CheckIcon />}
       </div>
     </components.Option>
   );
 };
-export const SelectInput = React.forwardRef<HTMLInputElement, InputProps>(
-  (props, ref) => {
-    return <Input {...props} ref={ref} />;
-  }
-);
+export const SelectInput = (props: InputProps) => {
+  // @ts-expect-error
+  let icon: string = props.getValue()?.[0]?.icon;
+  // console.log(icon[0])
+  return (
+    <>
+      {icon ? (
+        <Image height={18} width={24} src={icon} />
+      ) : (
+        <Search className="h-5 text-gray-500 w-4" />
+      )}
 
+      <components.Input {...props} className="w-auto" />
+    </>
+  );
+};
+// export const ValueContainer = (props: ValueContainerProps) => {
+//   let selected: any = props.getValue()?.[0];
+//   // console.log(icon[0])
+//   return (
+//     <>
+//       <components.ValueContainer {...props}>
+//           <span className="mr-2">
+//             {selected?.icon ? (
+//               // @ts-expect-error
+//               <Image height={18} width={24} src={selected?.icon} />
+//             ) : (
+//               <Search className="h-5 text-gray-500 w-4" />
+//             )}
+//           </span>
+//           {selected?.label}
+//       </components.ValueContainer>
+//     </>
+//   );
+// };
+
+export const ValueContainer = ({ children, ...props }: ValueContainerProps) => {
+  let selected: any = props.getValue()?.[0];
+  return (
+    <components.ValueContainer {...props}>
+      <div className="flex gap-2">
+        {selected?.icon ? (
+          // @ts-expect-error
+          <Image height={14} width={24} src={selected?.icon} />
+        ) : (
+          <Search className="h-5 text-gray-500 w-4" />
+        )}
+        {children}
+      </div>
+    </components.ValueContainer>
+  );
+};
 export const MenuList = (props: any) => {
   const { options, children, maxHeight, getValue } = props;
   const height = 35; // row height
   const [value] = getValue();
   const initialOffset = options.indexOf(value) * height;
-  
+
   return (
     // @ts-expect-error
     <List

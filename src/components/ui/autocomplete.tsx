@@ -87,6 +87,11 @@ export const AutoComplete = ({
   );
   useMemo(() => {
     setInputValue(value?.value ? selected?.label : "");
+    !value?.value &&
+      setSelected({
+        label: "",
+        value: "",
+      });
   }, [value?.value]);
 
   const handleFocus = useCallback(() => {

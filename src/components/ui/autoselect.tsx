@@ -7,6 +7,8 @@ import {
   DropdownIndicator,
   MultiValueRemove,
   Option,
+  SelectInput,
+  ValueContainer,
 } from "./components";
 
 const AutoSelect = React.forwardRef((props: Props, ref) => {
@@ -34,6 +36,8 @@ const AutoSelect = React.forwardRef((props: Props, ref) => {
         ClearIndicator,
         MultiValueRemove,
         Option,
+        // Input: SelectInput,
+        ValueContainer: ValueContainer,
         // MenuList,
         ...components,
       }}

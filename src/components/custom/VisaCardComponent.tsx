@@ -36,7 +36,7 @@ const VisaCardComponent: React.FC<Props> = ({
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="self-start">{children}</CardContent>
+      <CardContent className="self-start overflow-y-auto w-full mb-6 h-[93%]">{children}</CardContent>
     </Card>
   );
 };
