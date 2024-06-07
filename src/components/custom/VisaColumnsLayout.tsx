@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { CurrencyProps, IPData } from "@/types";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { CircleChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
@@ -19,13 +20,21 @@ import { Button } from "../ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "../ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
 import { Skeleton } from "../ui/skeleton";
 import VisaCardComponent from "./VisaCardComponent";
+import { ScrollArea } from "../ui/scroll-area";
 import { Separator } from "../ui/separator";
 
 interface Nationality {
@@ -57,9 +66,20 @@ const VisaColumnsLayout = (props: Props) => {
   // const ref = useRef<HTMLFormElement | null>(null);
   const path = usePathname();
   const { nationalities, ipData, supportedCurrencies: currencies } = props;
+  console.log(ipData);
   let opt = nationalities.find((x) => x?.cioc === ipData?.country_code_iso3);
   const [colLayout, setColLayout] = useState(1);
-  const [selectedCurrency, setSelectedCurrency] = useState<string>("");
+  const [selectedCurrency, setSelectedCurrency] = useState<string>(() => {
+    const availableCurrencies = currencies.map((x) => x.currency);
+    return (
+      (ipData?.currency &&
+        availableCurrencies.includes(ipData.currency) &&
+        ipData.currency) ||
+      (availableCurrencies.includes("USD") && "USD") ||
+      availableCurrencies[0] ||
+      "USD"
+    );
+  });
   const [isCorEnabled, setIsCorEnabled] = useState<boolean>(false);
   const [nationality, setNationality] = useState<Option>({
     label: opt?.name ?? "",
@@ -74,6 +94,7 @@ const VisaColumnsLayout = (props: Props) => {
     icon: opt?.flag ?? "",
     ...(opt ?? {}),
   });
+  const [isOpenModal, setIsOpenModal] = useState<boolean>(false);
 
   // const travellingToData: Option[] = [];
 
@@ -212,108 +233,166 @@ const VisaColumnsLayout = (props: Props) => {
   );
 
   return (
-    <div className="h-full p-3 pb-0 flex flex-col overflow-hidden">
-      <div
-        className="flex gap-5 mb-3 flex-1 transition-all h-[calc(100vh-6rem)] ease-out duration-1000 "
-        style={{
-          width: `calc(${100 * (3 / colLayout) + "%"} + ${
-            colLayout === 1 ? 2.3 : colLayout === 2 ? 0.75 : 0
-          }rem)`,
-        }}
-      >
-        <VisaCardComponent
-          title="Visa Application"
-          colLayout={colLayout}
-          number={1}
+    <>
+      <Dialog open={isOpenModal} modal onOpenChange={setIsOpenModal}>
+        <DialogContent className="sm:max-w-[500px] max-h-[calc(100vh-5rem)] overflow">
+          <DialogHeader>
+            <DialogTitle className="text-primary text-xl">
+              30 Days e-Visa + Insurance
+            </DialogTitle>
+            {/* <DialogDescription>
+              Make changes to your profile here. Click save when you're done.
+            </DialogDescription> */}
+          </DialogHeader>
+          <ScrollArea className="h-[calc(100vh-20rem)] -mx-6 px-6">
+            <h3 className="text-lg font-bold mb-2">Fee Breakup</h3>
+            <div className="bg-slate-100 rounded-xl border border-slate-300 shadow-sm px-3 py-4 space-y-3 mb-2 font-semibold">
+              <div className="flex justify-between ">
+                <div>Visa + Insurance Fee</div>
+                <div>USD 84.00</div>
+              </div>
+              <div className="flex justify-between">
+                <div>Service Fee & Taxes</div>
+                <div>USD 10.50</div>
+              </div>
+              <div className="flex justify-between">
+                <div className="text-primary">Total</div>
+                <div>USD 95</div>
+              </div>
+            </div>
+            <Separator className="my-3" />
+            <div className="bg-slate-100 border-slate-300 shadow-sm border rounded font-semibold p-3">e-Visa</div>
+            <div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                Lorem ipsum dolor sit amet consectetur, adipisicing elit. Velit
+                est, ratione iusto autem voluptatum repellendus omnis ex nisi,
+                fuga delectus optio sapiente perspiciatis error, hic vero
+                placeat neque cumque at.
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                Lorem ipsum dolor sit amet consectetur adipisicing elit. In,
+                commodi! Natus deleniti omnis facilis fuga culpa suscipit
+                temporibus ullam excepturi sed eius, incidunt dolorum iusto
+                obcaecati aperiam corporis ab. Eaque.
+              </div>
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+      <div className="h-full p-3 pb-0 flex flex-col overflow-hidden">
+        <div
+          className="flex gap-5 mb-3 flex-1 transition-all h-[calc(100vh-6rem)] ease-out duration-1000 "
+          style={{
+            width: `calc(${100 * (3 / colLayout) + "%"} + ${
+              colLayout === 1 ? 2.3 : colLayout === 2 ? 0.75 : 0
+            }rem)`,
+          }}
         >
-          <div className="max-w-md mx-auto">{renderVisaTypeCard()}</div>
-        </VisaCardComponent>
-        <VisaCardComponent
-          title="Visa Type"
-          className="pt-0"
-          colLayout={colLayout}
-          number={2}
-        >
-          <div className="">
-            {getTravellingToData.isPending ? (
-              <>
-                <Skeleton className=" w-[150px] mt-3 ml-auto h-8 rounded-md" />
-                <LoadingVisaCards />
-              </>
-            ) : (
-              <>
-                {!!currencies?.length ? (
-                  <>
-                    <div className="my-3 px-3 border-b py-2 max-w-md mx-auto sticky top-0 bg-white">
-                      <Select
-                        value={selectedCurrency}
-                        onValueChange={setSelectedCurrency}
-                      >
-                        <SelectTrigger className="w-[180px] ml-auto">
-                          <SelectValue placeholder="Currency" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {currencies.map((x, i) => (
-                            <SelectItem value={x.currency}>
-                              {x.currency}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-5 pb-5 px-3 max-w-md mx-auto ">
-                      {new Array(3).fill("").map((x: any, i: number) => (
-                        <Card className="overflow-hidden rounded-sm">
-                          <CardHeader className="bg-primary/30 p-2">
-                            <CardTitle className="text-md ">
-                              30 Days e-Visa
-                            </CardTitle>
-                            <div className="h-6 relative">
-                              <span className="bg-primary text-white pl-3 pr-10 py-1.5 text-xs/3  absolute -left-3 ribin_cut">
-                                + Basic Insurance
-                              </span>
-                            </div>
-                            {/* <CardDescription className="text-sm ">
+          <VisaCardComponent
+            title="Visa Application"
+            colLayout={colLayout}
+            number={1}
+          >
+            <div className="max-w-md mx-auto">{renderVisaTypeCard()}</div>
+          </VisaCardComponent>
+          <VisaCardComponent
+            title="Visa Type"
+            className="pt-0"
+            colLayout={colLayout}
+            number={2}
+          >
+            <div className="">
+              {isLoading ? (
+                <>
+                  <Skeleton className=" w-[150px] mt-3 ml-auto h-8 rounded-md" />
+                  <LoadingVisaCards />
+                </>
+              ) : (
+                <>
+                  {!!currencies?.length ? (
+                    <>
+                      <div className="my-3 px-3 border-b py-2 max-w-md mx-auto sticky z-10 top-0 bg-white">
+                        <Select
+                          value={selectedCurrency}
+                          onValueChange={setSelectedCurrency}
+                        >
+                          <SelectTrigger className="w-[180px] ml-auto">
+                            <SelectValue placeholder="Currency" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {currencies.map((x, i) => (
+                              <SelectItem value={x.currency}>
+                                {x.currency}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-5 pb-5 px-3 max-w-md mx-auto ">
+                        {new Array(3).fill("").map((x: any, i: number) => (
+                          <Card className="overflow-hidden rounded-sm">
+                            <CardHeader className="bg-primary/30 p-2">
+                              <CardTitle className="text-md  px-4">
+                                <div className="flex justify-between items-center">
+                                  <div> 30 Days e-Visa</div>
+                                  <div>USD 100 </div>
+                                </div>
+                              </CardTitle>
+                              <div className="h-6 relative">
+                                <span className="bg-primary text-white pl-3 pr-10 py-1.5 text-xs/3  absolute -left-3 ribin_cut">
+                                  + Basic Insurance
+                                </span>
+                              </div>
+                              {/* <CardDescription className="text-sm ">
                               Card Description
                             </CardDescription> */}
-                          </CardHeader>
-                          <CardContent>
-                            <div>
-                              Tourist | Standard | Single Entry | 30 Days
-                            </div>
-                            <p>Visa Validity: 58 Days from date of issue</p>
-                            <p>Visa Validity: 58 Days from date of issue</p>
-                            <p>Visa Validity: 58 Days from date of issue</p>
-                            <p>Visa Validity: 58 Days from date of issue</p>
-                          </CardContent>
-                          <CardFooter className="bg-primary pb-3 text-white">
-                            <div className="mt-3 underline ">More Details</div>
-                          </CardFooter>
-                        </Card>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-slate-500">No data found!</div>
-                )}
-              </>
-            )}
-          </div>
-        </VisaCardComponent>
-        <VisaCardComponent
-          title="Upload Documents"
-          colLayout={colLayout}
-          number={3}
-        >
-          test
-        </VisaCardComponent>
+                            </CardHeader>
+                            <CardContent className="text-sm text-slate-500 space-y-1">
+                              <div className="pb-1 pt-4 font-bold text-black">
+                                Tourist | Standard | Single Entry | 30 Days
+                              </div>
+                              <p>Visa Validity: 58 Days from date of issue</p>
+                              <p>Visa Validity: 58 Days from date of issue</p>
+                              <p>Visa Validity: 58 Days from date of issue</p>
+                              <p>Visa Validity: 58 Days from date of issue</p>
+                            </CardContent>
+                            <CardFooter className="bg-primary pb-3 text-white">
+                              <div className="mt-3 w-full flex justify-between items-center">
+                                <div
+                                  className="underline text-sm hover:cursor-pointer"
+                                  onClick={() => setIsOpenModal(true)}
+                                >
+                                  More Details
+                                </div>
+                                <CircleChevronRight />
+                              </div>
+                            </CardFooter>
+                          </Card>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-slate-500">No data found!</div>
+                  )}
+                </>
+              )}
+            </div>
+          </VisaCardComponent>
+          <VisaCardComponent
+            title="Upload Documents"
+            colLayout={colLayout}
+            number={3}
+          >
+            test
+          </VisaCardComponent>
+        </div>
+        <Card className="w-full flex items-center justify-end p-3 rounded-b-none ">
+          <Link href={path + "/review"}>
+            <Button variant={"destructive"}>Proceed</Button>
+          </Link>
+        </Card>
       </div>
-      <Card className="w-full flex items-center justify-end p-3 rounded-b-none ">
-        <Link href={path + "/review"}>
-          <Button variant={"destructive"}>Proceed</Button>
-        </Link>
-      </Card>
-    </div>
+    </>
   );
 };
 

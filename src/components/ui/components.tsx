@@ -85,7 +85,7 @@ export const ValueContainer = ({ children, ...props }: ValueContainerProps) => {
       <div className="flex gap-2" >
         {selected?.icon ? (
           // @ts-expect-error
-          <Image height={14} width={24} src={selected?.icon} />
+          <Image height={14} width={24} className="h-3.5 object-contain my-auto" src={selected?.icon} />
         ) : (
           <Search className="h-5 text-gray-500 w-4" />
         )}

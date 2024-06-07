@@ -63,6 +63,9 @@
     text-overflow: ellipsis;
     overflow: hidden;
   }
+  .ribin_cut::before {
+    @apply bg-primary/30;
+  }
 }
 
 @layer utilities {
@@ -78,4 +81,20 @@
 
 .rdp-vhidden {
   @apply hidden;
+}
+/* .ribin_cut::before {
+  content: " ";
+  background: #e6e6fa;
+  position: absolute;
+  width: 15px;
+  height: 27px;
+  top: -1px;
+  right: -1px;
+  border-radius: 100px 0 0 100px;
+  -webkit-clip-path: polygon(100% 0, 0 50%, 100% 100%);
+  clip-path: polygon(100% 0, 0 50%, 100% 100%);
+} */
+
+.ribin_cut {
+  clip-path: polygon(0% 0%, 100% 0, calc(100% - 15px) 50%, 100% 100%, 0% 100%);
 }
