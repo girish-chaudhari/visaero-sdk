@@ -2,7 +2,7 @@
 
 import axios from "@/config";
 import API from "@/services/api";
-import { IPData } from "@/types";
+import { IPData, VisaOfferProps } from "@/types";
 import { revalidatePath } from "next/cache";
 
 const host = "visaero";
@@ -75,6 +75,7 @@ export const getTravellingTo = async (obj: {
     origin,
     user_id,
   });
+  revalidatePath("/evm/new-visa");
   console.log("request from server>>", request.data);
   return request.data;
 };
@@ -90,11 +91,17 @@ interface GetVisaOffers {
   managed_by: "master" | "host";
 }
 
-export const getVisaOffers = async (obj: GetVisaOffers) => {
+interface GetVisaOfferProps {
+  dataobj: VisaOfferProps[];
+  data: string
+}
+
+export const getVisaOffers = async (obj: GetVisaOffers): Promise<GetVisaOfferProps> => {
   console.log("works", obj, host);
   let payload = { ...obj, host, user_id };
   let request = await axios.post(API.getVisaOffers, payload);
   console.log("request from server>>", request.data);
+  revalidatePath('/evm/new-visa')
   return request.data;
 };
 

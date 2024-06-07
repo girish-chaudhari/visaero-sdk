@@ -95,3 +95,89 @@ export interface FooterItem {
 export type MainNavItem = NavItemWithOptionalChildren;
 
 export type SidebarNavItem = NavItemWithChildren;
+
+
+
+interface BaseFeesStructure {
+  adult_govt_fee: string;
+  adult_service_fee: string;
+  child_govt_fee: string;
+  child_service_fee: string;
+  infant_govt_fee: string;
+  infant_service_fee: string;
+}
+
+interface Description {
+  header: string;
+  sub_header_1: string;
+  sub_header_2: string;
+  sub_header_3: string;
+  body: string;
+}
+
+export interface Fees {
+  adult_govt_fee: string;
+  adult_service_fee: string;
+  child_govt_fee: string;
+  child_service_fee: string;
+  infant_govt_fee: string;
+  infant_service_fee: string;
+  bundled_insurance_service_fee: number;
+  bundled_insurance_fee: number;
+  total_cost: string;
+  total_service_fee: string;
+  total_tax: string;
+  tax_type: string;
+  additional_taxes: any[]; // Assuming this can be an array of any type, modify as needed
+  currency: string;
+}
+
+interface InsuranceCoverage {
+  name: string;
+  value: string;
+}
+
+export interface InsuranceDetails {
+  visaero_insurance_fees: string;
+  visaero_service_fees: string;
+  insurance_type: string;
+  insurance_type_id: string;
+  insurance_title: string;
+  insurance_coverage: InsuranceCoverage[];
+  insurance_desc: { name: string; value: string }[];
+}
+
+export interface VisaDetailsProps {
+  visa_id: string;
+  visa_code: string;
+  duration_days: string;
+  duration_type: string;
+  duration_display: string;
+  visa_title: string;
+  processing_time: string;
+  visa_validity: string;
+  stay_validity: string;
+  description: string;
+  base_fees_structure: BaseFeesStructure;
+  desc: Description;
+  old_visa_id: string;
+  display_title: string;
+  fees: Fees;
+}
+
+export interface VisaOfferProps {
+  _id: string;
+  name: string;
+  travelling_to: string;
+  travelling_to_identity: string;
+  visa_type: string;
+  visa_category: string;
+  processing_type: string;
+  entry_type: string;
+  status: string;
+  visa_details: VisaDetailsProps;
+  host: string;
+  is_visaero_insurance_bundled: boolean;
+  insurance_details?: InsuranceDetails; // Make optional if it might not be present
+  is_insurance_cloned?: boolean; // Optional field
+}

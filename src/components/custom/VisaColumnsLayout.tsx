@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CurrencyProps, IPData } from "@/types";
+import { CurrencyProps, IPData, VisaOfferProps } from "@/types";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { CircleChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -51,25 +51,9 @@ type Props = {
 };
 
 const VisaColumnsLayout = (props: Props) => {
-  const getTravellingToData = useMutation({
-    mutationKey: ["getVisaOffers"],
-    mutationFn: () =>
-      getVisaOffers({
-        currency: "USD",
-        managed_by: "master",
-        nationality: nationality.value as string,
-        travelling_to: travellingTo!.value,
-        travelling_to_identity: travellingTo!.identity,
-        type: "qr-visa",
-      }),
-  });
-  // const ref = useRef<HTMLFormElement | null>(null);
-  const path = usePathname();
   const { nationalities, ipData, supportedCurrencies: currencies } = props;
-  console.log(ipData);
-  let opt = nationalities.find((x) => x?.cioc === ipData?.country_code_iso3);
-  const [colLayout, setColLayout] = useState(1);
-  const [selectedCurrency, setSelectedCurrency] = useState<string>(() => {
+
+  const defaultCurrency = useMemo(() => {
     const availableCurrencies = currencies.map((x) => x.currency);
     return (
       (ipData?.currency &&
@@ -79,26 +63,61 @@ const VisaColumnsLayout = (props: Props) => {
       availableCurrencies[0] ||
       "USD"
     );
-  });
+  }, [currencies]);
+
+  // const ref = useRef<HTMLFormElement | null>(null);
+  const path = usePathname();
+  // console.log(ipData);
+  let opt = nationalities.find((x) => x?.cioc === ipData?.country_code_iso3);
+  const [colLayout, setColLayout] = useState(1);
+  const [selectedCurrency, setSelectedCurrency] =
+    useState<string>(defaultCurrency);
   const [isCorEnabled, setIsCorEnabled] = useState<boolean>(false);
-  const [nationality, setNationality] = useState<Option>({
-    label: opt?.name ?? "",
-    value: opt?.name ?? "",
-    icon: opt?.flag ?? "",
-    ...(opt ?? {}),
-  });
+  const [nationality, setNationality] = useState<Option | undefined>(
+    opt && {
+      label: opt?.name ?? "",
+      value: opt?.name ?? "",
+      icon: opt?.flag ?? "",
+      ...(opt ?? {}),
+    }
+  );
   const [travellingTo, setTravellingTo] = useState<Option | undefined>();
-  const [cor, setCor] = useState<Option>({
-    label: opt?.name ?? "",
-    value: opt?.name ?? "",
-    icon: opt?.flag ?? "",
-    ...(opt ?? {}),
-  });
+  const [cor, setCor] = useState<Option | undefined>(
+    opt && {
+      label: opt?.name ?? "",
+      value: opt?.name ?? "",
+      icon: opt?.flag ?? "",
+      ...(opt ?? {}),
+    }
+  );
   const [isOpenModal, setIsOpenModal] = useState<boolean>(false);
+
+  const getVisaOffersData = useMutation({
+    mutationKey: [
+      "getVisaOffers",
+      // {
+      //   currency: defaultCurrency,
+      //   managed_by: "master",
+      //   nationality: nationality?.value as string,
+      //   travelling_to: travellingTo?.value,
+      //   travelling_to_identity: travellingTo?.identity,
+      //   type: "qr-visa",
+      // },
+    ],
+    mutationFn: () =>
+      getVisaOffers({
+        currency: selectedCurrency,
+        managed_by: "master",
+        nationality: nationality?.value as string,
+        travelling_to: travellingTo?.value as string,
+        travelling_to_identity: travellingTo?.identity as string,
+        type: "qr-visa",
+      }),
+  });
 
   // const travellingToData: Option[] = [];
 
-  const { data: travellingToData, isLoading } = useQuery({
+  const { data: travellingToData } = useQuery({
     queryKey: [
       "getTravellingTo",
       {
@@ -113,7 +132,16 @@ const VisaColumnsLayout = (props: Props) => {
       }),
   });
 
-  console.log("travellingToData", travellingToData);
+  console.log("travellingToData", getVisaOffersData);
+  const visaOffersData = useMemo(
+    () =>
+      getVisaOffersData.data?.data === "success"
+        ? getVisaOffersData.data?.dataobj
+        : [],
+    [getVisaOffersData]
+  );
+
+  console.log(visaOffersData);
 
   const natinoalitiesData = useMemo(
     () =>
@@ -166,6 +194,11 @@ const VisaColumnsLayout = (props: Props) => {
     setTravellingTo({} as any);
   };
 
+  const handleCurrencyChange = (cur: string) => {
+    setSelectedCurrency(cur);
+    getVisaOffersData.mutate();
+  };
+
   // useEffect(() => {
   //   // Using a loop
   //   for (let i = 1; i <= 3; i++) {
@@ -194,8 +227,10 @@ const VisaColumnsLayout = (props: Props) => {
     // @ts-ignore
     setIsCorEnabled(!!opt?.cor_required);
     setColLayout(2);
-    getTravellingToData.mutate();
+    getVisaOffersData.mutate();
   };
+
+
 
   const renderVisaTypeCard = () => (
     <>
@@ -224,7 +259,7 @@ const VisaColumnsLayout = (props: Props) => {
           placeholder="Country of Residence"
           onChange={(opt: unknown) => {
             setCor(opt as Option);
-            getTravellingToData.mutate();
+            getVisaOffersData.mutate();
           }}
           value={cor}
         />
@@ -246,7 +281,7 @@ const VisaColumnsLayout = (props: Props) => {
           </DialogHeader>
           <ScrollArea className="h-[calc(100vh-20rem)] -mx-6 px-6">
             <h3 className="text-lg font-bold mb-2">Fee Breakup</h3>
-            <div className="bg-slate-100 rounded-xl border border-slate-300 shadow-sm px-3 py-4 space-y-3 mb-2 font-semibold">
+            <div className="bg-slate-100 rounded-xl border border-slate-300 shadow-sm px-3 py-4 space-y-3 mb-2 text-sm font-semibold">
               <div className="flex justify-between ">
                 <div>Visa + Insurance Fee</div>
                 <div>USD 84.00</div>
@@ -261,21 +296,71 @@ const VisaColumnsLayout = (props: Props) => {
               </div>
             </div>
             <Separator className="my-3" />
-            <div className="bg-slate-100 border-slate-300 shadow-sm border rounded font-semibold p-3">e-Visa</div>
-            <div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                Lorem ipsum dolor sit amet consectetur, adipisicing elit. Velit
-                est, ratione iusto autem voluptatum repellendus omnis ex nisi,
-                fuga delectus optio sapiente perspiciatis error, hic vero
-                placeat neque cumque at.
+            <div className="bg-slate-100 border-slate-300 shadow-sm border rounded font-semibold p-3">
+              e-Visa
+            </div>
+            <div className="flex h-5 items-center space-x-4 text-sm my-3 w-full ">
+              <div className="flex-1">Tourist</div>
+              <Separator orientation="vertical" />
+              <div className="flex-1 text-center">Standard</div>
+              <Separator orientation="vertical" />
+              <div className="flex-1 text-end">Single Entry</div>
+            </div>
+            <div className="space-y-2 text-sm">
+              <div className="flex">
+                <b>Visa Validity :</b>
+                <div>58 Days from date of issue days</div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                Lorem ipsum dolor sit amet consectetur adipisicing elit. In,
-                commodi! Natus deleniti omnis facilis fuga culpa suscipit
-                temporibus ullam excepturi sed eius, incidunt dolorum iusto
-                obcaecati aperiam corporis ab. Eaque.
+              <div className="flex">
+                <b>Stay Validity :</b>
+                <div>30 Days from date of entry</div>
+              </div>
+              <div className="flex">
+                <b>Processing Time :</b>
+                <div>3-4 Working Days</div>
               </div>
             </div>
+            <p className="text-[0.8rem] text-slate-400 my-2">
+              Visa valid for all UAE Emirates
+            </p>
+            <div className="bg-slate-100 border-slate-300 shadow-sm border rounded font-semibold p-3">
+              Travel Insurance
+            </div>
+            <table className="text-sm my-2">
+              <tr>
+                <td className="w-[50%] font-semibold">Type of Insurance:</td>
+                <td className="w-[50%]">Basic Insurance</td>
+              </tr>
+              <tr>
+                <td className="w-[50%] font-semibold">Provider:</td>
+                <td className="w-[50%]">ISA Insurance</td>
+              </tr>
+              <tr>
+                <td className="w-[50%] font-semibold">
+                  Medical expenses incurred during hospitalization:
+                </td>
+                <td className="w-[50%]">$10,000</td>
+              </tr>
+              <tr>
+                <td className="w-[50%] font-semibold">
+                  Medical expenses incurred during hospitalization due to
+                  Covid-19:
+                </td>
+                <td className="w-[50%]">Included</td>
+              </tr>
+              <tr>
+                <td className="w-[50%] font-semibold">
+                  Emergency medical evacuation:
+                </td>
+                <td className="w-[50%]">$10,000</td>
+              </tr>
+              <tr>
+                <td className="w-[50%] font-semibold">
+                  Emergency medical repatriation:
+                </td>
+                <td className="w-[50%]">$10,000</td>
+              </tr>
+            </table>
           </ScrollArea>
         </DialogContent>
       </Dialog>
@@ -302,44 +387,56 @@ const VisaColumnsLayout = (props: Props) => {
             number={2}
           >
             <div className="">
-              {isLoading ? (
+              {getVisaOffersData.isPending ? (
                 <>
                   <Skeleton className=" w-[150px] mt-3 ml-auto h-8 rounded-md" />
                   <LoadingVisaCards />
                 </>
               ) : (
                 <>
-                  {!!currencies?.length ? (
+                  {!!visaOffersData?.length ? (
                     <>
-                      <div className="my-3 px-3 border-b py-2 max-w-md mx-auto sticky z-10 top-0 bg-white">
-                        <Select
-                          value={selectedCurrency}
-                          onValueChange={setSelectedCurrency}
-                        >
-                          <SelectTrigger className="w-[180px] ml-auto">
-                            <SelectValue placeholder="Currency" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {currencies.map((x, i) => (
-                              <SelectItem value={x.currency}>
-                                {x.currency}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      {!!currencies?.length && (
+                        <div className="my-3 px-3 border-b py-2 max-w-md mx-auto sticky z-10 top-0 bg-white">
+                          <Select
+                            value={selectedCurrency}
+                            onValueChange={handleCurrencyChange}
+                          >
+                            <SelectTrigger className="w-[180px] ml-auto">
+                              <SelectValue placeholder="Currency" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {currencies.map((x, i) => (
+                                <SelectItem value={x.currency}>
+                                  {x.currency}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                       <div className="space-y-5 pb-5 px-3 max-w-md mx-auto ">
-                        {new Array(3).fill("").map((x: any, i: number) => (
+                        {visaOffersData?.map((x: VisaOfferProps, i: number) => (
                           <Card className="overflow-hidden rounded-sm">
                             <CardHeader className="bg-primary/30 p-2">
                               <CardTitle className="text-md  px-4">
                                 <div className="flex justify-between items-center">
-                                  <div> 30 Days e-Visa</div>
-                                  <div>USD 100 </div>
+                                  <div>
+                                    {x?.visa_details?.duration_days}{" "}
+                                    {x.visa_details.duration_type}{" "}
+                                    {x.visa_type === "evisa"
+                                      ? "e-Visa"
+                                      : x.visa_type}
+                                  </div>
+                                  {/* <div> 30 Days e-Visa</div> */}
+                                  <div>
+                                    {x.visa_details.fees.currency}{" "}
+                                    {x.visa_details.fees.total_cost}{" "}
+                                  </div>
                                 </div>
                               </CardTitle>
                               <div className="h-6 relative">
-                                <span className="bg-primary text-white pl-3 pr-10 py-1.5 text-xs/3  absolute -left-3 ribin_cut">
+                                <span className="bg-primary text-white pl-3 pr-10 py-0.5 text-xs/5 absolute -left-3 ribin_cut">
                                   + Basic Insurance
                                 </span>
                               </div>
@@ -348,18 +445,27 @@ const VisaColumnsLayout = (props: Props) => {
                             </CardDescription> */}
                             </CardHeader>
                             <CardContent className="text-sm text-slate-500 space-y-1">
-                              <div className="pb-1 pt-4 font-bold text-black">
+                              <div className="pb-1 pt-4 text-sm font-bold text-black">
                                 Tourist | Standard | Single Entry | 30 Days
                               </div>
-                              <p>Visa Validity: 58 Days from date of issue</p>
-                              <p>Visa Validity: 58 Days from date of issue</p>
-                              <p>Visa Validity: 58 Days from date of issue</p>
-                              <p>Visa Validity: 58 Days from date of issue</p>
+
+                              <div className="text-xs">
+                                Visa Validity: 58 Days from date of issue
+                              </div>
+                              <div className="text-xs">
+                                Visa Validity: 58 Days from date of issue
+                              </div>
+                              <div className="text-xs">
+                                Visa Validity: 58 Days from date of issue
+                              </div>
+                              <div className="text-xs">
+                                Visa Validity: 58 Days from date of issue
+                              </div>
                             </CardContent>
                             <CardFooter className="bg-primary pb-3 text-white">
                               <div className="mt-3 w-full flex justify-between items-center">
                                 <div
-                                  className="underline text-sm hover:cursor-pointer"
+                                  className="underline text-sm hover:cursor-pointer font-bold"
                                   onClick={() => setIsOpenModal(true)}
                                 >
                                   More Details
