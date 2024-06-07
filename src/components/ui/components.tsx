@@ -42,6 +42,7 @@ export const MultiValueRemove = (props: MultiValueRemoveProps) => {
   );
 };
 export const Option = (props: OptionProps) => {
+  
   return (
     <components.Option {...props}>
       <div className="flex items-center justify-between overflow-x-hidden">
@@ -49,7 +50,7 @@ export const Option = (props: OptionProps) => {
           {/* @ts-expect-error */}
           {props!.data!.icon && (
             // @ts-ignore
-            <Image height={18} width={24} src={props!.data!.icon} />
+            <Image height={14} width={24} className="object-contain shadow-sm h-6" src={props!.data!.icon} alt={props!.data!.label} />
           )}
           {/* @ts-expect-error */}
           {props!.data!.label}
@@ -62,11 +63,12 @@ export const Option = (props: OptionProps) => {
 export const SelectInput = (props: InputProps) => {
   // @ts-expect-error
   let icon: string = props.getValue()?.[0]?.icon;
-  // console.log(icon[0])
+  // @ts-expect-error
+  let label: string = props?.getValue()?.[0]?.label  ?? ""
   return (
     <>
       {icon ? (
-        <Image height={18} width={24} src={icon} />
+        <Image height={18} width={24} src={icon} alt={label} />
       ) : (
         <Search className="h-5 text-gray-500 w-4" />
       )}
@@ -75,31 +77,12 @@ export const SelectInput = (props: InputProps) => {
     </>
   );
 };
-// export const ValueContainer = (props: ValueContainerProps) => {
-//   let selected: any = props.getValue()?.[0];
-//   // console.log(icon[0])
-//   return (
-//     <>
-//       <components.ValueContainer {...props}>
-//           <span className="mr-2">
-//             {selected?.icon ? (
-//               // @ts-expect-error
-//               <Image height={18} width={24} src={selected?.icon} />
-//             ) : (
-//               <Search className="h-5 text-gray-500 w-4" />
-//             )}
-//           </span>
-//           {selected?.label}
-//       </components.ValueContainer>
-//     </>
-//   );
-// };
 
 export const ValueContainer = ({ children, ...props }: ValueContainerProps) => {
   let selected: any = props.getValue()?.[0];
   return (
-    <components.ValueContainer {...props}>
-      <div className="flex gap-2">
+    <components.ValueContainer {...props} >
+      <div className="flex gap-2" >
         {selected?.icon ? (
           // @ts-expect-error
           <Image height={14} width={24} src={selected?.icon} />

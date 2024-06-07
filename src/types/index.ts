@@ -10,6 +10,17 @@ export interface enterpriseObj {
 }
 
 
+
+export interface CurrencyProps {
+  country: string;
+  currency: string;
+  symbol: string;
+  name: string;
+  value_to_usd: string;
+  exchange_rate: number;
+  taxes: any[]; // Use a more specific type if you know the structure of the objects in the taxes array
+} 
+
 export interface EnterpriseData {
   _id: string;
   enterprise_account_id: string;

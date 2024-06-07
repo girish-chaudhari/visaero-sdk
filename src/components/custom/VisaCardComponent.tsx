@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import React from "react";
 
 type Props = {
@@ -12,6 +13,7 @@ type Props = {
   number: string | number;
   children: React.ReactNode;
   colLayout: number;
+  className?: string
 };
 
 const VisaCardComponent: React.FC<Props> = ({
@@ -19,11 +21,12 @@ const VisaCardComponent: React.FC<Props> = ({
   number,
   children,
   colLayout,
+  className
 }) => {
   // Use React.FC<Props> for functional components
   return (
     <Card
-      className={`overflow-hidden `}
+      className={cn(`overflow-hidden`, className)}
       style={{ width: 100 / colLayout+"%" }}
     >
       <CardHeader className="bg-gray-100">

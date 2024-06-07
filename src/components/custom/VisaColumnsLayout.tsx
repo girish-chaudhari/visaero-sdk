@@ -1,25 +1,32 @@
 "use client";
 
 import { getTravellingTo, getVisaOffers } from "@/actions/new-visa";
-import { IPData } from "@/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { CurrencyProps, IPData } from "@/types";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
-import AutoComplete, { type Option } from "../ui/autocomplete";
+import { type Option } from "../ui/autocomplete";
+import AutoSelect from "../ui/autoselect";
 import { Button } from "../ui/button";
-import { Card } from "../ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "../ui/card";
 import { Skeleton } from "../ui/skeleton";
 import VisaCardComponent from "./VisaCardComponent";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import AutoSelect from "../ui/autoselect";
+import { Separator } from "../ui/separator";
 
 interface Nationality {
   name: string;
@@ -31,6 +38,7 @@ interface Nationality {
 type Props = {
   nationalities: Nationality[];
   ipData: IPData | null;
+  supportedCurrencies: CurrencyProps[] | [];
 };
 
 const VisaColumnsLayout = (props: Props) => {
@@ -48,19 +56,22 @@ const VisaColumnsLayout = (props: Props) => {
   });
   // const ref = useRef<HTMLFormElement | null>(null);
   const path = usePathname();
-  const { nationalities, ipData } = props;
+  const { nationalities, ipData, supportedCurrencies: currencies } = props;
   let opt = nationalities.find((x) => x?.cioc === ipData?.country_code_iso3);
   const [colLayout, setColLayout] = useState(1);
+  const [selectedCurrency, setSelectedCurrency] = useState<string>("");
   const [isCorEnabled, setIsCorEnabled] = useState<boolean>(false);
   const [nationality, setNationality] = useState<Option>({
     label: opt?.name ?? "",
     value: opt?.name ?? "",
+    icon: opt?.flag ?? "",
     ...(opt ?? {}),
   });
   const [travellingTo, setTravellingTo] = useState<Option | undefined>();
   const [cor, setCor] = useState<Option>({
     label: opt?.name ?? "",
     value: opt?.name ?? "",
+    icon: opt?.flag ?? "",
     ...(opt ?? {}),
   });
 
@@ -83,6 +94,19 @@ const VisaColumnsLayout = (props: Props) => {
 
   console.log("travellingToData", travellingToData);
 
+  const natinoalitiesData = useMemo(
+    () =>
+      nationalities?.map((x) => ({
+        label: x?.name,
+        value: x?.name,
+        flag: x?.flag,
+        icon: x?.flag,
+      })) ?? [],
+    []
+  );
+
+  const corData = structuredClone(natinoalitiesData);
+
   const travellingToOptions = useMemo(
     () =>
       travellingToData?.data == "success"
@@ -94,6 +118,7 @@ const VisaColumnsLayout = (props: Props) => {
               flag: string;
               name: string;
               value: string;
+              icon: string;
             }) => ({
               label: x?.name,
               value: x?.name,
@@ -101,20 +126,23 @@ const VisaColumnsLayout = (props: Props) => {
               managed_by: x?.managed_by,
               cor_required: !!x?.cor_required,
               identity: x.identity,
+              icon: x?.flag,
             })
           )
         : [],
     [travellingToData]
   );
 
-  console.log("travellingToOptions", travellingToOptions);
+  // console.log("travellingToOptions", travellingToOptions);
+  console.log("currencies", currencies);
 
-  const handleNationalityChange = (opt: unknown | Option, ) => {
-    setNationality(opt);
-    setCor(opt);
+  const handleNationalityChange = (opt: unknown | Option) => {
+    setNationality(opt as Option);
+    setCor(opt as Option);
     setTravellingTo(undefined);
     setColLayout(1);
     setIsCorEnabled(false);
+    setTravellingTo({} as any);
   };
 
   // useEffect(() => {
@@ -131,27 +159,18 @@ const VisaColumnsLayout = (props: Props) => {
   //   }
   // }, []);
 
-  const natinoalitiesData = useMemo(
-    () =>
-      nationalities?.map((x) => ({
-        label: x?.name,
-        value: x?.name,
-        flag: x?.flag,
-        icon: x?.flag,
-      })) ?? [],
-    []
-  );
-
-  const corData = structuredClone(natinoalitiesData);
-
-  const handleTravellingToChange = (opt: {
-    label: string;
-    value: string;
-    managed_by?: string;
-    cor_required?: boolean;
-  }) => {
-    console.log(opt);
+  const handleTravellingToChange = (
+    opt:
+      | unknown
+      | {
+          label: string;
+          value: string;
+          managed_by?: string;
+          cor_required?: boolean;
+        }
+  ) => {
     setTravellingTo(opt as Option);
+    // @ts-ignore
     setIsCorEnabled(!!opt?.cor_required);
     setColLayout(2);
     getTravellingToData.mutate();
@@ -159,106 +178,33 @@ const VisaColumnsLayout = (props: Props) => {
 
   const renderVisaTypeCard = () => (
     <>
-      <div className="my-2">
+      <div className="mb-5 mt-5">
         <AutoSelect
           options={natinoalitiesData}
-          // emptyMessage="No results"
-          // label={"Nationality"}
           name="nationality"
           placeholder="Nationality"
           onChange={handleNationalityChange}
-          // leftIcon={
-          //   nationality?.flag && (
-          //     <Image
-          //       src={nationality?.flag}
-          //       alt={nationality?.label}
-          //       height={20}
-          //       width={30}
-          //       className="shadow"
-          //       priority
-          //     />
-          //   )
-          // }
-          // renderSelectedItemIcon={(option: any) => (
-          //   <Image
-          //     src={option?.flag}
-          //     alt={option?.label}
-          //     height={20}
-          //     width={30}
-          //     className="shadow"
-          //     priority
-          //   />
-          // )}
           value={nationality}
         />
       </div>
-      <div className="my-2">
-        <AutoComplete
+      <div className="mb-5">
+        <AutoSelect
           options={travellingToOptions}
-          emptyMessage="No results"
-          label={"Travelling to"}
           placeholder="Travelling to"
           name="travelling_to"
-          onValueChange={handleTravellingToChange}
-          isLoading={isLoading}
-          leftIcon={
-            travellingTo?.flag && (
-              <Image
-                src={travellingTo?.flag}
-                alt={travellingTo?.label}
-                height={20}
-                width={30}
-                className="shadow"
-                priority
-              />
-            )
-          }
-          renderSelectedItemIcon={(options: any) => (
-            <Image
-              src={options?.flag}
-              alt={options?.label}
-              height={20}
-              width={30}
-              className="shadow"
-              priority
-            />
-          )}
+          onChange={handleTravellingToChange}
           value={travellingTo}
         />
       </div>
       <div className={`my-2 ${!!isCorEnabled ? "" : "hidden"}`}>
-        <AutoComplete
+        <AutoSelect
           options={corData}
           name="origin"
-          emptyMessage="No results"
-          label={"Country of Residence"}
           placeholder="Country of Residence"
-          onValueChange={(opt: Option) => {
-            setCor(opt);
+          onChange={(opt: unknown) => {
+            setCor(opt as Option);
             getTravellingToData.mutate();
           }}
-          leftIcon={
-            cor?.flag && (
-              <Image
-                alt={cor.label}
-                src={cor?.flag}
-                height={20}
-                width={30}
-                className="shadow"
-                priority
-              />
-            )
-          }
-          renderSelectedItemIcon={(options: Option) => (
-            <Image
-              src={options?.flag}
-              alt={options.label}
-              height={15}
-              width={20}
-              className="shadow"
-              priority
-            />
-          )}
           value={cor}
         />
       </div>
@@ -282,24 +228,74 @@ const VisaColumnsLayout = (props: Props) => {
         >
           <div className="max-w-md mx-auto">{renderVisaTypeCard()}</div>
         </VisaCardComponent>
-        <VisaCardComponent title="Visa Type" colLayout={colLayout} number={2}>
-          <div className="px-3 max-w-md mx-auto ">
+        <VisaCardComponent
+          title="Visa Type"
+          className="pt-0"
+          colLayout={colLayout}
+          number={2}
+        >
+          <div className="">
             {getTravellingToData.isPending ? (
-              <LoadingVisaCards />
+              <>
+                <Skeleton className=" w-[150px] mt-3 ml-auto h-8 rounded-md" />
+                <LoadingVisaCards />
+              </>
             ) : (
               <>
-                <div className="my-3 flex justify-end">
-                  <Select>
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Theme" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="light">Light</SelectItem>
-                      <SelectItem value="dark">Dark</SelectItem>
-                      <SelectItem value="system">System</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {!!currencies?.length ? (
+                  <>
+                    <div className="my-3 px-3 border-b py-2 max-w-md mx-auto sticky top-0 bg-white">
+                      <Select
+                        value={selectedCurrency}
+                        onValueChange={setSelectedCurrency}
+                      >
+                        <SelectTrigger className="w-[180px] ml-auto">
+                          <SelectValue placeholder="Currency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {currencies.map((x, i) => (
+                            <SelectItem value={x.currency}>
+                              {x.currency}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-5 pb-5 px-3 max-w-md mx-auto ">
+                      {new Array(3).fill("").map((x: any, i: number) => (
+                        <Card className="overflow-hidden rounded-sm">
+                          <CardHeader className="bg-primary/30 p-2">
+                            <CardTitle className="text-md ">
+                              30 Days e-Visa
+                            </CardTitle>
+                            <div className="h-6 relative">
+                              <span className="bg-primary text-white pl-3 pr-10 py-1.5 text-xs/3  absolute -left-3 ribin_cut">
+                                + Basic Insurance
+                              </span>
+                            </div>
+                            {/* <CardDescription className="text-sm ">
+                              Card Description
+                            </CardDescription> */}
+                          </CardHeader>
+                          <CardContent>
+                            <div>
+                              Tourist | Standard | Single Entry | 30 Days
+                            </div>
+                            <p>Visa Validity: 58 Days from date of issue</p>
+                            <p>Visa Validity: 58 Days from date of issue</p>
+                            <p>Visa Validity: 58 Days from date of issue</p>
+                            <p>Visa Validity: 58 Days from date of issue</p>
+                          </CardContent>
+                          <CardFooter className="bg-primary pb-3 text-white">
+                            <div className="mt-3 underline ">More Details</div>
+                          </CardFooter>
+                        </Card>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-slate-500">No data found!</div>
+                )}
               </>
             )}
           </div>
