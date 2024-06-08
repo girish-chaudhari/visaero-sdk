@@ -36,6 +36,7 @@ import { Skeleton } from "../ui/skeleton";
 import VisaCardComponent from "./VisaCardComponent";
 import { ScrollArea } from "../ui/scroll-area";
 import { Separator } from "../ui/separator";
+import { DatePickerWithRange } from "./DateRangeModal";
 
 interface Nationality {
   name: string;
@@ -230,8 +231,6 @@ const VisaColumnsLayout = (props: Props) => {
     getVisaOffersData.mutate();
   };
 
-
-
   const renderVisaTypeCard = () => (
     <>
       <div className="mb-5 mt-5">
@@ -263,6 +262,9 @@ const VisaColumnsLayout = (props: Props) => {
           }}
           value={cor}
         />
+      </div>
+      <div className={`my-2`}>
+        <DatePickerWithRange  /> 
       </div>
     </>
   );
@@ -435,32 +437,42 @@ const VisaColumnsLayout = (props: Props) => {
                                   </div>
                                 </div>
                               </CardTitle>
-                              <div className="h-6 relative">
-                                <span className="bg-primary text-white pl-3 pr-10 py-0.5 text-xs/5 absolute -left-3 ribin_cut">
-                                  + Basic Insurance
-                                </span>
-                              </div>
+                              {x.is_visaero_insurance_bundled && (
+                                <div className="h-6 relative">
+                                  <span className="bg-primary capitalize text-white pl-3 pr-10 py-0.5 text-xs/5 absolute -left-3 ribin_cut">
+                                    + {x.insurance_details?.insurance_title}
+                                  </span>
+                                </div>
+                              )}
                               {/* <CardDescription className="text-sm ">
                               Card Description
                             </CardDescription> */}
                             </CardHeader>
                             <CardContent className="text-sm text-slate-500 space-y-1">
-                              <div className="pb-1 pt-4 text-sm font-bold text-black">
-                                Tourist | Standard | Single Entry | 30 Days
+                              <div className="pb-1 pt-4 text-sm font-bold text-black capitalize">
+                                {x?.visa_category} | {x.processing_type} |{" "}
+                                {x.entry_type} Entry |{" "}
+                                {x.visa_details.duration_display}
                               </div>
 
                               <div className="text-xs">
-                                Visa Validity: 58 Days from date of issue
+                                Visa Validity: {x.visa_details.visa_validity}
                               </div>
                               <div className="text-xs">
-                                Visa Validity: 58 Days from date of issue
+                                Stay Validity: {x.visa_details.stay_validity}
                               </div>
                               <div className="text-xs">
-                                Visa Validity: 58 Days from date of issue
+                                Processing Time:{" "}
+                                {x.visa_details.processing_time}
                               </div>
-                              <div className="text-xs">
-                                Visa Validity: 58 Days from date of issue
-                              </div>
+                              {x.is_visaero_insurance_bundled &&
+                                x.insurance_details?.insurance_coverage?.map(
+                                  (ins, i: number) => (
+                                    <div className="text-xs" key={i}>
+                                      {ins.name}: {ins.value}
+                                    </div>
+                                  )
+                                )}
                             </CardContent>
                             <CardFooter className="bg-primary pb-3 text-white">
                               <div className="mt-3 w-full flex justify-between items-center">
