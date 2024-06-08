@@ -42,7 +42,6 @@ export const MultiValueRemove = (props: MultiValueRemoveProps) => {
   );
 };
 export const Option = (props: OptionProps) => {
-  
   return (
     <components.Option {...props}>
       <div className="flex items-center justify-between overflow-x-hidden">
@@ -50,7 +49,15 @@ export const Option = (props: OptionProps) => {
           {/* @ts-expect-error */}
           {props!.data!.icon && (
             // @ts-ignore
-            <Image height={14} width={24} className="object-contain shadow-sm h-6" src={props!.data!.icon} alt={props!.data!.label} />
+            <Image
+              height={14}
+              width={24}
+              className="object-contain shadow-sm h-6 "
+              // @ts-ignore
+              src={props!.data?.icon}
+              // @ts-ignore
+              alt={props!.data!.label}
+            />
           )}
           {/* @ts-expect-error */}
           {props!.data!.label}
@@ -64,7 +71,7 @@ export const SelectInput = (props: InputProps) => {
   // @ts-expect-error
   let icon: string = props.getValue()?.[0]?.icon;
   // @ts-expect-error
-  let label: string = props?.getValue()?.[0]?.label  ?? ""
+  let label: string = props?.getValue()?.[0]?.label ?? "";
   return (
     <>
       {icon ? (
@@ -80,16 +87,23 @@ export const SelectInput = (props: InputProps) => {
 
 export const ValueContainer = ({ children, ...props }: ValueContainerProps) => {
   let selected: any = props.getValue()?.[0];
+
   return (
-    <components.ValueContainer {...props} >
-      <div className="flex gap-2" >
+    <components.ValueContainer {...props}>
+      <div className="flex gap-2" tabIndex={0}>
         {selected?.icon ? (
           // @ts-expect-error
-          <Image height={14} width={24} className="h-3.5 object-contain my-auto" src={selected?.icon} />
+          <Image
+            height={14}
+            width={24}
+            className="h-3.5 object-contain my-auto shadow-sm"
+            src={selected?.icon}
+          />
         ) : (
           <Search className="h-5 text-gray-500 w-4" />
         )}
-        {children}
+        {/*  @ts-expect-error */}
+        {props.selectProps.menuIsOpen ? children?.[1] ?? children : children}
       </div>
     </components.ValueContainer>
   );
