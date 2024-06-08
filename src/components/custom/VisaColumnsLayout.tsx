@@ -192,7 +192,6 @@ const VisaColumnsLayout = (props: Props) => {
     setTravellingTo(undefined);
     setColLayout(1);
     setIsCorEnabled(false);
-    setTravellingTo({} as any);
   };
 
   const handleCurrencyChange = (cur: string) => {

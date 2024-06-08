@@ -78,7 +78,7 @@ export const DatePickerWithRange = React.memo(
               />
             </div>
             <DialogFooter className="p-3">
-              <Button onClick={() => setDate(undefined)}>Clear</Button>
+              <Button variant={'secondary'} onClick={() => setDate(undefined)}>Clear</Button>
               <DialogTrigger asChild>
                 <Button variant={"destructive"}>Save</Button>
               </DialogTrigger>

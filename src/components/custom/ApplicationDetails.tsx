@@ -2,18 +2,15 @@
 
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerDescription,
-  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
-  DrawerTrigger,
+  DrawerTrigger
 } from "@/components/ui/drawer";
-import { Button } from "../ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "../ui/button";
 
-import React from "react";
 
 type Props = {};
 
