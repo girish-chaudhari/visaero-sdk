@@ -1,6 +1,10 @@
 "use client";
 
-import { getTravellingTo, getVisaOffers } from "@/actions/new-visa";
+import {
+  getTravellingTo,
+  getVisaOffers,
+  uploadAndExtractDocumentsAction,
+} from "@/actions/new-visa";
 import {
   Select,
   SelectContent,
@@ -10,10 +14,13 @@ import {
 } from "@/components/ui/select";
 import { CurrencyProps, IPData, VisaOfferProps } from "@/types";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { AxiosProgressEvent, CancelToken } from "axios";
+import clsx from "clsx";
 import { CircleChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
+import FileUploader from "../image-uploader";
 import { type Option } from "../ui/autocomplete";
 import AutoSelect from "../ui/autoselect";
 import { Button } from "../ui/button";
@@ -24,19 +31,14 @@ import {
   CardHeader,
   CardTitle,
 } from "../ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../ui/dialog";
-import { Skeleton } from "../ui/skeleton";
-import VisaCardComponent from "./VisaCardComponent";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { ScrollArea } from "../ui/scroll-area";
 import { Separator } from "../ui/separator";
+import { Skeleton } from "../ui/skeleton";
 import { DatePickerWithRange } from "./DateRangeModal";
+import VisaCardComponent from "./VisaCardComponent";
+import API from "@/services/api";
+import axios from "@/config";
 
 interface Nationality {
   name: string;
@@ -66,7 +68,6 @@ const VisaColumnsLayout = (props: Props) => {
     );
   }, [currencies]);
 
-  // const ref = useRef<HTMLFormElement | null>(null);
   const path = usePathname();
   // console.log(ipData);
   let opt = nationalities.find((x) => x?.cioc === ipData?.country_code_iso3);
@@ -74,6 +75,7 @@ const VisaColumnsLayout = (props: Props) => {
   const [selectedCurrency, setSelectedCurrency] =
     useState<string>(defaultCurrency);
   const [isCorEnabled, setIsCorEnabled] = useState<boolean>(false);
+  const [modalData, setModalData] = useState<VisaOfferProps | undefined>();
   const [nationality, setNationality] = useState<Option | undefined>(
     opt && {
       label: opt?.name ?? "",
@@ -91,20 +93,25 @@ const VisaColumnsLayout = (props: Props) => {
       ...(opt ?? {}),
     }
   );
+  const [visaObj, setVisaObj] = useState<VisaOfferProps | undefined>(undefined);
   const [isOpenModal, setIsOpenModal] = useState<boolean>(false);
-
+  const [selectedVisa, setSelectedVisa] = useState<number | undefined>(
+    undefined
+  );
   const getVisaOffersData = useMutation({
-    mutationKey: [
-      "getVisaOffers",
-      // {
-      //   currency: defaultCurrency,
-      //   managed_by: "master",
-      //   nationality: nationality?.value as string,
-      //   travelling_to: travellingTo?.value,
-      //   travelling_to_identity: travellingTo?.identity,
-      //   type: "qr-visa",
-      // },
-    ],
+    mutationKey: ["getVisaOffers"],
+    mutationFn: () =>
+      getVisaOffers({
+        currency: selectedCurrency,
+        managed_by: "master",
+        nationality: nationality?.value as string,
+        travelling_to: travellingTo?.value as string,
+        travelling_to_identity: travellingTo?.identity as string,
+        type: "qr-visa",
+      }),
+  });
+  const uploadAndExtractDocuments = useMutation({
+    mutationKey: ["uploadAndExtractDocuments"],
     mutationFn: () =>
       getVisaOffers({
         currency: selectedCurrency,
@@ -199,19 +206,18 @@ const VisaColumnsLayout = (props: Props) => {
     getVisaOffersData.mutate();
   };
 
-  // useEffect(() => {
-  //   // Using a loop
-  //   for (let i = 1; i <= 3; i++) {
-  //     delay(i * 1000) // Multiply by 1000 to convert seconds to milliseconds
-  //       .then(() => {
-  //         setColLayout(i);
-  //         console.log(`Delayed operation executed after ${i} seconds`);
-  //       })
-  //       .catch((error) => {
-  //         console.error("An error occurred:", error);
-  //       });
-  //   }
-  // }, []);
+  useMemo(() => {
+    typeof selectedVisa === "number" &&
+      !isNaN(selectedVisa) &&
+      setVisaObj(visaOffersData?.[selectedVisa]);
+  }, [getVisaOffersData.data]);
+
+  // function for handleVisaClicked
+  const handleVisaClicked = (obj: VisaOfferProps, ind: number) => {
+    setVisaObj(obj);
+    setColLayout(3);
+    setSelectedVisa(ind);
+  };
 
   const handleTravellingToChange = (
     opt:
@@ -227,7 +233,40 @@ const VisaColumnsLayout = (props: Props) => {
     // @ts-ignore
     setIsCorEnabled(!!opt?.cor_required);
     setColLayout(2);
+    typeof selectedVisa === "number" &&
+      !isNaN(selectedVisa) &&
+      setSelectedVisa(undefined);
     getVisaOffersData.mutate();
+  };
+
+  // country of residence change
+  const handleCorChange = (opt: unknown) => {
+    setCor(opt as Option);
+    getVisaOffersData.mutate();
+    typeof selectedVisa === "number" &&
+      !isNaN(selectedVisa) &&
+      setSelectedVisa(undefined);
+  };
+
+  const handleUploadDoc = async (
+    formData: FormData,
+    options: {
+      onUploadProgress: (progressEvent: AxiosProgressEvent) => void;
+      cancelToken: CancelToken;
+    }
+  ) => {
+    return axios.post(
+      API.uploadAndExtractDocuments,
+      formData,
+      {
+        onUploadProgress: options.onUploadProgress,
+        cancelToken: options.cancelToken,
+      }
+    );
+    // return await uploadAndExtractDocumentsAction(file, {
+    //   onUploadProgress: options.onUploadProgress,
+    //   cancelToken: options.cancelToken,
+    // });
   };
 
   const renderVisaTypeCard = () => (
@@ -255,15 +294,12 @@ const VisaColumnsLayout = (props: Props) => {
           options={corData}
           name="origin"
           placeholder="Country of Residence"
-          onChange={(opt: unknown) => {
-            setCor(opt as Option);
-            getVisaOffersData.mutate();
-          }}
+          onChange={handleCorChange}
           value={cor}
         />
       </div>
       <div className={`my-2`}>
-        <DatePickerWithRange  /> 
+        <DatePickerWithRange />
       </div>
     </>
   );
@@ -274,94 +310,97 @@ const VisaColumnsLayout = (props: Props) => {
         <DialogContent className="sm:max-w-[500px] max-h-[calc(100vh-5rem)] overflow">
           <DialogHeader>
             <DialogTitle className="text-primary text-xl">
-              30 Days e-Visa + Insurance
+              {modalData?.visa_details.duration_display}{" "}
+              {modalData?.visa_type === "evisa"
+                ? `e-Visa`
+                : modalData?.visa_type}{" "}
+              {modalData?.is_visaero_insurance_bundled ? " + Insurance" : ""}
             </DialogTitle>
-            {/* <DialogDescription>
-              Make changes to your profile here. Click save when you're done.
-            </DialogDescription> */}
           </DialogHeader>
-          <ScrollArea className="h-[calc(100vh-20rem)] -mx-6 px-6">
+          <ScrollArea className="max-h-[calc(100vh-20rem)] -mx-6 px-6">
             <h3 className="text-lg font-bold mb-2">Fee Breakup</h3>
             <div className="bg-slate-100 rounded-xl border border-slate-300 shadow-sm px-3 py-4 space-y-3 mb-2 text-sm font-semibold">
               <div className="flex justify-between ">
-                <div>Visa + Insurance Fee</div>
-                <div>USD 84.00</div>
+                <div>
+                  Visa{" "}
+                  {modalData?.is_visaero_insurance_bundled
+                    ? " + Insurance Fee"
+                    : ""}
+                </div>
+                <div>
+                  {modalData?.visa_details.fees.currency}{" "}
+                  {modalData?.visa_details.fees.adult_govt_fee}
+                </div>
               </div>
               <div className="flex justify-between">
                 <div>Service Fee & Taxes</div>
-                <div>USD 10.50</div>
+                <div>
+                  {modalData?.visa_details.fees.currency}{" "}
+                  {modalData?.visa_details.fees.adult_service_fee}
+                </div>
               </div>
               <div className="flex justify-between">
                 <div className="text-primary">Total</div>
-                <div>USD 95</div>
+                <div>
+                  {modalData?.visa_details.fees.currency}{" "}
+                  {modalData?.visa_details.fees.total_cost}
+                </div>
               </div>
             </div>
             <Separator className="my-3" />
             <div className="bg-slate-100 border-slate-300 shadow-sm border rounded font-semibold p-3">
-              e-Visa
+              {modalData?.visa_type === "evisa"
+                ? `e-Visa`
+                : modalData?.visa_type}
             </div>
-            <div className="flex h-5 items-center space-x-4 text-sm my-3 w-full ">
-              <div className="flex-1">Tourist</div>
+            <div className="flex h-5 items-center space-x-4 text-sm my-3 w-full font-bold text-gray-800 capitalize">
+              <div className="flex-1">{modalData?.visa_category}</div>
               <Separator orientation="vertical" />
-              <div className="flex-1 text-center">Standard</div>
+              <div className="flex-1 text-center">
+                {modalData?.processing_type}
+              </div>
               <Separator orientation="vertical" />
-              <div className="flex-1 text-end">Single Entry</div>
+              <div className="flex-1 text-end">
+                {modalData?.entry_type} Entry
+              </div>
             </div>
             <div className="space-y-2 text-sm">
               <div className="flex">
-                <b>Visa Validity :</b>
-                <div>58 Days from date of issue days</div>
+                <b>Visa Validity: &nbsp;</b>
+                <div>{modalData?.visa_details.visa_validity}</div>
               </div>
               <div className="flex">
-                <b>Stay Validity :</b>
-                <div>30 Days from date of entry</div>
+                <b>Stay Validity: &nbsp;</b>
+                <div>{modalData?.visa_details.stay_validity}</div>
               </div>
               <div className="flex">
-                <b>Processing Time :</b>
-                <div>3-4 Working Days</div>
+                <b>Processing Time: &nbsp;</b>
+                <div>{modalData?.visa_details.processing_time}</div>
               </div>
             </div>
-            <p className="text-[0.8rem] text-slate-400 my-2">
-              Visa valid for all UAE Emirates
-            </p>
-            <div className="bg-slate-100 border-slate-300 shadow-sm border rounded font-semibold p-3">
-              Travel Insurance
-            </div>
-            <table className="text-sm my-2">
-              <tr>
-                <td className="w-[50%] font-semibold">Type of Insurance:</td>
-                <td className="w-[50%]">Basic Insurance</td>
-              </tr>
-              <tr>
-                <td className="w-[50%] font-semibold">Provider:</td>
-                <td className="w-[50%]">ISA Insurance</td>
-              </tr>
-              <tr>
-                <td className="w-[50%] font-semibold">
-                  Medical expenses incurred during hospitalization:
-                </td>
-                <td className="w-[50%]">$10,000</td>
-              </tr>
-              <tr>
-                <td className="w-[50%] font-semibold">
-                  Medical expenses incurred during hospitalization due to
-                  Covid-19:
-                </td>
-                <td className="w-[50%]">Included</td>
-              </tr>
-              <tr>
-                <td className="w-[50%] font-semibold">
-                  Emergency medical evacuation:
-                </td>
-                <td className="w-[50%]">$10,000</td>
-              </tr>
-              <tr>
-                <td className="w-[50%] font-semibold">
-                  Emergency medical repatriation:
-                </td>
-                <td className="w-[50%]">$10,000</td>
-              </tr>
-            </table>
+            {modalData?.visa_details.description && (
+              <p className="text-[0.8rem] text-slate-400 my-2">
+                {modalData?.visa_details.description}
+              </p>
+            )}
+            {modalData?.is_visaero_insurance_bundled && (
+              <>
+                <Separator className="my-3" />
+                <div className="bg-slate-100 border-slate-300 shadow-sm border rounded font-semibold p-3">
+                  Travel Insurance
+                </div>
+                <table className="text-sm my-2">
+                  {modalData?.insurance_details?.insurance_desc?.map(
+                    (a, i: number) => (
+                      <tr key={i} className="text-sm">
+                        <td className="w-[50%] font-semibold">{a.name}:</td>
+                        <td className="w-[50%]">{a.value}</td>
+                      </tr>
+                    )
+                  )}
+                </table>
+              </>
+            )}
           </ScrollArea>
         </DialogContent>
       </Dialog>
@@ -389,10 +428,10 @@ const VisaColumnsLayout = (props: Props) => {
           >
             <div className="">
               {getVisaOffersData.isPending ? (
-                <>
+                <div className="px-3 max-w-md mx-auto">
                   <Skeleton className=" w-[150px] mt-3 ml-auto h-8 rounded-md" />
                   <LoadingVisaCards />
-                </>
+                </div>
               ) : (
                 <>
                   {!!visaOffersData?.length ? (
@@ -418,8 +457,15 @@ const VisaColumnsLayout = (props: Props) => {
                       )}
                       <div className="space-y-5 pb-5 px-3 max-w-md mx-auto ">
                         {visaOffersData?.map((x: VisaOfferProps, i: number) => (
-                          <Card className="overflow-hidden rounded-sm">
-                            <CardHeader className="bg-primary/30 p-2">
+                          <Card
+                            key={i}
+                            className={clsx("overflow-hidden rounded-sm", {
+                              "border-primary shadow-sm shadow-primary":
+                                i === selectedVisa,
+                            })}
+                            onClick={() => handleVisaClicked(x, i)}
+                          >
+                            <CardHeader className="bg-primary/30 px-2 py-3">
                               <CardTitle className="text-md  px-4">
                                 <div className="flex justify-between items-center">
                                   <div>
@@ -447,7 +493,7 @@ const VisaColumnsLayout = (props: Props) => {
                               Card Description
                             </CardDescription> */}
                             </CardHeader>
-                            <CardContent className="text-sm text-slate-500 space-y-1">
+                            <CardContent className="text-sm text-slate-500 space-y-1 min-h-32">
                               <div className="pb-1 pt-4 text-sm font-bold text-black capitalize">
                                 {x?.visa_category} | {x.processing_type} |{" "}
                                 {x.entry_type} Entry |{" "}
@@ -477,7 +523,12 @@ const VisaColumnsLayout = (props: Props) => {
                               <div className="mt-3 w-full flex justify-between items-center">
                                 <div
                                   className="underline text-sm hover:cursor-pointer font-bold"
-                                  onClick={() => setIsOpenModal(true)}
+                                  onClick={(e) => {
+                                    setIsOpenModal(true);
+                                    setModalData(x);
+                                    // stop propogation
+                                    e.stopPropagation();
+                                  }}
                                 >
                                   More Details
                                 </div>
@@ -500,7 +551,9 @@ const VisaColumnsLayout = (props: Props) => {
             colLayout={colLayout}
             number={3}
           >
-            test
+            <div className="my-2">
+              <FileUploader getServerAction={handleUploadDoc} />
+            </div>
           </VisaCardComponent>
         </div>
         <Card className="w-full flex items-center justify-end p-3 rounded-b-none ">

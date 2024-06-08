@@ -87,7 +87,7 @@ export const SelectInput = (props: InputProps) => {
 
 export const ValueContainer = ({ children, ...props }: ValueContainerProps) => {
   let selected: any = props.getValue()?.[0];
-
+// let valueContainerProps = {...props}
   return (
     <components.ValueContainer {...props}>
       <div className="flex gap-2" tabIndex={0}>
@@ -102,8 +102,8 @@ export const ValueContainer = ({ children, ...props }: ValueContainerProps) => {
         ) : (
           <Search className="h-5 text-gray-500 w-4" />
         )}
-        {/*  @ts-expect-error */}
-        {props.selectProps.menuIsOpen ? children?.[1] ?? children : children}
+        {children}
+        {/* {valueContainerProps.selectProps.menuIsOpen ? children?.[1] ?? children : children} */}
       </div>
     </components.ValueContainer>
   );

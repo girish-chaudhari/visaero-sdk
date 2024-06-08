@@ -5,6 +5,7 @@ import { SessionProvider, SessionProviderProps } from "next-auth/react";
 import { TooltipProvider } from "@/components/tooltip";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "../ui/toaster";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -53,6 +54,7 @@ export default function Providers({
                 initialIsOpen={false}
                 buttonPosition="bottom-left"
               />
+              <Toaster />
             </TooltipProvider>
           </SessionProvider>
         </ThemeProvider>

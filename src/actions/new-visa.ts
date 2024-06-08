@@ -3,6 +3,7 @@
 import axios from "@/config";
 import API from "@/services/api";
 import { IPData, VisaOfferProps } from "@/types";
+import { AxiosProgressEvent, CancelToken, CancelTokenSource } from "axios";
 import { revalidatePath } from "next/cache";
 
 const host = "visaero";
@@ -93,15 +94,17 @@ interface GetVisaOffers {
 
 interface GetVisaOfferProps {
   dataobj: VisaOfferProps[];
-  data: string
+  data: string;
 }
 
-export const getVisaOffers = async (obj: GetVisaOffers): Promise<GetVisaOfferProps> => {
+export const getVisaOffers = async (
+  obj: GetVisaOffers
+): Promise<GetVisaOfferProps> => {
   console.log("works", obj, host);
   let payload = { ...obj, host, user_id };
   let request = await axios.post(API.getVisaOffers, payload);
   console.log("request from server>>", request.data);
-  revalidatePath('/evm/new-visa')
+  revalidatePath("/evm/new-visa");
   return request.data;
 };
 
@@ -109,6 +112,22 @@ export const getSupportedCurrencies = async () => {
   console.log("works", host);
   let request = await axios.get(API.getSupportedCurrencies, {
     params: { host },
+  });
+  console.log("request from server>>", request.data);
+  return request.data;
+};
+
+export const uploadAndExtractDocumentsAction = async (
+  formData: FormData,
+  options: {
+    onUploadProgress: (progressEvent: AxiosProgressEvent) => void;
+    cancelToken: CancelToken;
+  }
+) => {
+  const { cancelToken, onUploadProgress } = options;
+  let request = await axios.post(API.uploadAndExtractDocuments, formData, {
+    onUploadProgress,
+    cancelToken,
   });
   console.log("request from server>>", request.data);
   return request.data;
