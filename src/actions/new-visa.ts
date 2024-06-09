@@ -124,9 +124,11 @@ export const uploadAndExtractDocumentsAction = async (
     cancelToken: CancelToken;
   }
 ) => {
-  const { cancelToken, onUploadProgress } = options;
+  console.log("file upload",options, formData)
+  const { cancelToken,  } = options;
+  // const { cancelToken, onUploadProgress } = options;
   let request = await axios.post(API.uploadAndExtractDocuments, formData, {
-    onUploadProgress,
+    // onUploadProgress,
     cancelToken,
   });
   console.log("request from server>>", request.data);

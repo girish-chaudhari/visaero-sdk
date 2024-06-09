@@ -43,6 +43,16 @@ export default function Providers({
   children: React.ReactNode;
 }) {
   const queryClient = getQueryClient();
+
+  // // write a function that will get a offline page using js
+  // if (typeof window !== "undefined" && !navigator.onLine) {
+  //   return (
+  //     <div>
+  //       <h1>Offline</h1>
+  //     </div>
+  //   );
+  // }
+
   return (
     <>
       <QueryClientProvider client={queryClient}>

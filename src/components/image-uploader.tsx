@@ -239,14 +239,19 @@ const FileUploader: React.FC<Props> = memo(
 
       try {
         await Promise.all(fileUploadBatch);
-        toast({
-          variant:"default",
+         toast({
+          variant: "default",
           title: "Files uploaded successfully!",
           description: "Your files have been uploaded successfully",
-        })
+        });
         // alert("All files uploaded successfully");
       } catch (error) {
         console.error("Error uploading files: ", error);
+        toast({
+          variant: "destructive",
+          title: "Error uploading files",
+          description: "An error occurred while uploading your files",
+          });
       }
     }, []);
 
@@ -319,18 +324,22 @@ const FileUploader: React.FC<Props> = memo(
                           />
                         </div>
                       </div>
-                      <button
+                      {/* <button
                         onClick={() => {
                           if (fileUploadProgress.source)
-                            fileUploadProgress.source.cancel(
-                              "Upload cancelled"
-                            );
+                            try {
+                              fileUploadProgress.source.cancel(
+                                "Upload cancelled"
+                              );
+                            } catch (error) {
+                              console.error(error);
+                            }
                           removeFile(fileUploadProgress.File);
                         }}
                         className="bg-red-500 text-white transition-all items-center justify-center cursor-pointer px-2 hidden group-hover:flex"
                       >
                         <X size={20} />
-                      </button>
+                      </button> */}
                     </div>
                   );
                 })}

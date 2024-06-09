@@ -14,12 +14,12 @@ import {
 } from "@/components/ui/select";
 import { CurrencyProps, IPData, VisaOfferProps } from "@/types";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { AxiosProgressEvent, CancelToken } from "axios";
+import { AxiosProgressEvent, CancelToken, CancelTokenSource } from "axios";
 import clsx from "clsx";
 import { CircleChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import FileUploader from "../image-uploader";
 import { type Option } from "../ui/autocomplete";
 import AutoSelect from "../ui/autoselect";
@@ -38,7 +38,10 @@ import { Skeleton } from "../ui/skeleton";
 import { DatePickerWithRange } from "./DateRangeModal";
 import VisaCardComponent from "./VisaCardComponent";
 import API from "@/services/api";
-import axios from "@/config";
+// import axios from "@/config";
+import axios from "axios";
+import Dragger from "../Dragger";
+import { toast } from "../ui/use-toast";
 
 interface Nationality {
   name: string;
@@ -112,15 +115,13 @@ const VisaColumnsLayout = (props: Props) => {
   });
   const uploadAndExtractDocuments = useMutation({
     mutationKey: ["uploadAndExtractDocuments"],
-    mutationFn: () =>
-      getVisaOffers({
-        currency: selectedCurrency,
-        managed_by: "master",
-        nationality: nationality?.value as string,
-        travelling_to: travellingTo?.value as string,
-        travelling_to_identity: travellingTo?.identity as string,
-        type: "qr-visa",
-      }),
+    mutationFn: (payload: any) => {
+      console.log(payload)
+      return uploadAndExtractDocumentsAction(payload?.formData, {
+        onUploadProgress: payload?.progressEvent,
+        cancelToken: payload?.cancelToken,
+      });
+    },
   });
 
   // const travellingToData: Option[] = [];
@@ -236,6 +237,7 @@ const VisaColumnsLayout = (props: Props) => {
     typeof selectedVisa === "number" &&
       !isNaN(selectedVisa) &&
       setSelectedVisa(undefined);
+    // getVisaOffersData.mutateAsync()
     getVisaOffersData.mutate();
   };
 
@@ -255,19 +257,79 @@ const VisaColumnsLayout = (props: Props) => {
       cancelToken: CancelToken;
     }
   ) => {
-    return axios.post(
-      API.uploadAndExtractDocuments,
-      formData,
-      {
-        onUploadProgress: options.onUploadProgress,
-        cancelToken: options.cancelToken,
-      }
-    );
-    // return await uploadAndExtractDocumentsAction(file, {
-    //   onUploadProgress: options.onUploadProgress,
-    //   cancelToken: options.cancelToken,
-    // });
+    return axios.post(API.uploadAndExtractDocuments, formData, {
+      onUploadProgress: options.onUploadProgress,
+      cancelToken: options.cancelToken,
+    });
   };
+
+  // feel free to mode all these functions to separate utils
+  // here is just for simplicity
+  const onUploadProgress = (
+    progressEvent: AxiosProgressEvent,
+    file: File,
+    cancelSource: CancelTokenSource
+  ) => {
+    const progress = Math.round(
+      (progressEvent.loaded / (progressEvent.total ?? 0)) * 100
+    );
+
+    if (progress === 100) {
+      // setUploadedFiles((prevUploadedFiles) => {
+      //   return [...prevUploadedFiles, file];
+      // });
+
+      // setFilesToUpload((prevUploadProgress) => {
+      //   return prevUploadProgress.filter((item) => item.File !== file);
+      // });
+
+      return;
+    }
+  };
+
+  const handleUploadFile = useCallback(async (acceptedFiles: File[]) => {
+    const fileUploadBatch = acceptedFiles.map(async (file) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append(
+        "upload_preset",
+        process.env.NEXT_PUBLIC_UPLOAD_PRESET as string
+      );
+
+      const cancelSource = axios.CancelToken.source();
+      let payload: any = {
+        formData,
+        progressEvent: (progressEvent: AxiosProgressEvent) =>
+          onUploadProgress(progressEvent, file, cancelSource),
+        cancelToken: cancelSource.token,
+      };
+       uploadAndExtractDocuments.mutate(payload);
+
+      // const cancelSource = axios.CancelToken.source();
+      // return uploadImageToCloudinary(
+      //   formData,
+      //   (progressEvent) => onUploadProgress(progressEvent, file, cancelSource),
+      //   cancelSource
+      // );
+    });
+
+    try {
+      await Promise.all(fileUploadBatch);
+      toast({
+        variant: "default",
+        title: "Files uploaded successfully!",
+        description: "Your files have been uploaded successfully",
+      });
+      // alert("All files uploaded successfully");
+    } catch (error) {
+      console.error("Error uploading files: ", error);
+      toast({
+        variant: "destructive",
+        title: "Error uploading files",
+        description: "An error occurred while uploading your files",
+      });
+    }
+  }, []);
 
   const renderVisaTypeCard = () => (
     <>
@@ -552,7 +614,20 @@ const VisaColumnsLayout = (props: Props) => {
             number={3}
           >
             <div className="my-2">
-              <FileUploader getServerAction={handleUploadDoc} />
+              <Dragger
+                uploadOptions={{
+                  accept: {
+                    "image/jpeg": [".jpg", ".jpeg"],
+                    "image/png": [".png"],
+                    "image/heic": [".heic"],
+                    "application/pdf": [".pdf"],
+                  },
+                  onError: (error) => console.log("error", error),
+                  maxSize: 10 * 1024 * 1024, // 10 MB
+                  onDrop: handleUploadFile,
+                }}
+              />
+              {/* <FileUploader getServerAction={handleUploadDoc} /> */}
             </div>
           </VisaCardComponent>
         </div>
