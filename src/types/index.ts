@@ -181,3 +181,17 @@ export interface VisaOfferProps {
   insurance_details?: InsuranceDetails; // Make optional if it might not be present
   is_insurance_cloned?: boolean; // Optional field
 }
+
+
+export interface UploadedFile {
+  doc_identifier: string;
+  file: string;
+  file_thumbnail: string;
+  ocr: Record<string, any>; // Replace `any` with a more specific type if known
+  file_type: string;
+  file_name: string;
+  confidence: number;
+  original_file_name: string;
+  mime_type: string;
+  processed_by: string;
+}

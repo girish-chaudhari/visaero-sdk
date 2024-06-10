@@ -117,19 +117,15 @@ export const getSupportedCurrencies = async () => {
   return request.data;
 };
 
-export const uploadAndExtractDocumentsAction = async (
-  formData: FormData,
-  options: {
-    onUploadProgress: (progressEvent: AxiosProgressEvent) => void;
-    cancelToken: CancelToken;
-  }
-) => {
-  console.log("file upload",options, formData)
-  const { cancelToken,  } = options;
+export const uploadAndExtractDocumentsAction = async (formData: FormData) => {
+  console.log("file upload", formData);
+  // const { cancelToken,  } = options;
   // const { cancelToken, onUploadProgress } = options;
   let request = await axios.post(API.uploadAndExtractDocuments, formData, {
     // onUploadProgress,
-    cancelToken,
+    // onUploadProgress: ProgressEvent,
+    // cancelToken: options.cancelToken.token,
+    // ...payload,
   });
   console.log("request from server>>", request.data);
   return request.data;

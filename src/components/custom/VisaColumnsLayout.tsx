@@ -12,15 +12,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CurrencyProps, IPData, VisaOfferProps } from "@/types";
+import API from "@/services/api";
+import { CurrencyProps, IPData, UploadedFile, VisaOfferProps } from "@/types";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AxiosProgressEvent, CancelToken, CancelTokenSource } from "axios";
 import clsx from "clsx";
-import { CircleChevronRight } from "lucide-react";
+import { CircleChevronRight, LoaderCircle, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
-import FileUploader from "../image-uploader";
 import { type Option } from "../ui/autocomplete";
 import AutoSelect from "../ui/autoselect";
 import { Button } from "../ui/button";
@@ -31,15 +31,21 @@ import {
   CardHeader,
   CardTitle,
 } from "../ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../ui/dialog";
 import { ScrollArea } from "../ui/scroll-area";
 import { Separator } from "../ui/separator";
 import { Skeleton } from "../ui/skeleton";
 import { DatePickerWithRange } from "./DateRangeModal";
 import VisaCardComponent from "./VisaCardComponent";
-import API from "@/services/api";
 // import axios from "@/config";
 import axios from "axios";
+import Image from "next/image";
 import Dragger from "../Dragger";
 import { toast } from "../ui/use-toast";
 
@@ -101,6 +107,8 @@ const VisaColumnsLayout = (props: Props) => {
   const [selectedVisa, setSelectedVisa] = useState<number | undefined>(
     undefined
   );
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+
   const getVisaOffersData = useMutation({
     mutationKey: ["getVisaOffers"],
     mutationFn: () =>
@@ -115,12 +123,9 @@ const VisaColumnsLayout = (props: Props) => {
   });
   const uploadAndExtractDocuments = useMutation({
     mutationKey: ["uploadAndExtractDocuments"],
-    mutationFn: (payload: any) => {
-      console.log(payload)
-      return uploadAndExtractDocumentsAction(payload?.formData, {
-        onUploadProgress: payload?.progressEvent,
-        cancelToken: payload?.cancelToken,
-      });
+    mutationFn: (formData: FormData) => {
+      console.log(formData);
+      return uploadAndExtractDocumentsAction(formData);
     },
   });
 
@@ -288,39 +293,38 @@ const VisaColumnsLayout = (props: Props) => {
   };
 
   const handleUploadFile = useCallback(async (acceptedFiles: File[]) => {
+    console.log(acceptedFiles);
     const fileUploadBatch = acceptedFiles.map(async (file) => {
       const formData = new FormData();
-      formData.append("file", file);
-      formData.append(
-        "upload_preset",
-        process.env.NEXT_PUBLIC_UPLOAD_PRESET as string
-      );
-
+      formData.append("document", file);
+      formData.append("host", "visaero");
       const cancelSource = axios.CancelToken.source();
-      let payload: any = {
-        formData,
-        progressEvent: (progressEvent: AxiosProgressEvent) =>
-          onUploadProgress(progressEvent, file, cancelSource),
-        cancelToken: cancelSource.token,
-      };
-       uploadAndExtractDocuments.mutate(payload);
-
-      // const cancelSource = axios.CancelToken.source();
-      // return uploadImageToCloudinary(
-      //   formData,
-      //   (progressEvent) => onUploadProgress(progressEvent, file, cancelSource),
-      //   cancelSource
-      // );
+      await uploadAndExtractDocuments.mutateAsync(formData, {
+        onSuccess: (data) => {
+          // console.log(data)
+          setUploadedFiles((prevUploadedFiles: UploadedFile[]) => {
+            const newUploadedFiles = [...prevUploadedFiles, ...data?.dataobj];
+            return newUploadedFiles;
+          });
+        },
+        onError: (error) => {
+          toast({
+            variant: "destructive",
+            title: "Error uploading files",
+            description: "An error occurred while uploading your files",
+          });
+        },
+      });
     });
 
     try {
       await Promise.all(fileUploadBatch);
+      // console.log(fileUploadBatch)
       toast({
         variant: "default",
         title: "Files uploaded successfully!",
         description: "Your files have been uploaded successfully",
       });
-      // alert("All files uploaded successfully");
     } catch (error) {
       console.error("Error uploading files: ", error);
       toast({
@@ -522,7 +526,7 @@ const VisaColumnsLayout = (props: Props) => {
                           <Card
                             key={i}
                             className={clsx("overflow-hidden rounded-sm", {
-                              "border-primary shadow-sm shadow-primary":
+                              "border-primary shadow-sm shadow-primary border-2":
                                 i === selectedVisa,
                             })}
                             onClick={() => handleVisaClicked(x, i)}
@@ -622,18 +626,70 @@ const VisaColumnsLayout = (props: Props) => {
                     "image/heic": [".heic"],
                     "application/pdf": [".pdf"],
                   },
+                  multiple: true,
                   onError: (error) => console.log("error", error),
                   maxSize: 10 * 1024 * 1024, // 10 MB
                   onDrop: handleUploadFile,
                 }}
               />
-              {/* <FileUploader getServerAction={handleUploadDoc} /> */}
+              {uploadAndExtractDocuments.isPending && (
+                <div className="my-2 flex gap-2 text-slate-500 text-xs items-center">
+                  Documents are being uploaded{" "}
+                  <LoaderCircle className="animate-spin text-primary h-5 w-5" />
+                </div>
+              )}
+              {!!uploadedFiles?.length && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className="w-full border-primary bg-primary/10 hover:bg-primary/20 my-3 text-primary hover:text-primary"
+                    >
+                      View Uploaded Documents &nbsp;
+                      <span className="rounded-full border min-w-6 min-h-6 flex items-center justify-center border-primary px-2 py-0.5">
+                        {uploadedFiles?.length}
+                      </span>
+                    </Button>
+                  </DialogTrigger>
+
+                  <DialogContent className="sm:max-w-[600px] min-w-[60vw] h-[75vh]">
+                    <DialogHeader>
+                      <DialogTitle>Uploaded Documents</DialogTitle>
+                    </DialogHeader>
+                    <ScrollArea className="h-[60vh]">
+                      <div className="grid grid-cols-4 gap-4">
+                        {uploadedFiles.map((x: UploadedFile, i: number) => (
+                          <div key={i} className="bg-gray-300 p-3 rounded-lg">
+                            <div className="flex justify-center items-center gap-4 my-2">
+                              {" "}
+                              <span className="text-ellipsis overflow-hidden">
+                                {x.file_name}
+                              </span>{" "}
+                              <Trash2 className="h-[24px] w-[24px] cursor-pointer" />
+                            </div>
+                            <Image
+                              src={x?.file}
+                              height={275}
+                              width={225}
+                              alt={x.file_name}
+                              className="rounded"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                    {/* <DialogFooter>
+                      <Button type="submit">Save changes</Button>
+                    </DialogFooter> */}
+                  </DialogContent>
+                </Dialog>
+              )}
             </div>
           </VisaCardComponent>
         </div>
         <Card className="w-full flex items-center justify-end p-3 rounded-b-none ">
           <Link href={path + "/review"}>
-            <Button variant={"destructive"}>Proceed</Button>
+            <Button variant={"destructive"}>Proceed </Button>
           </Link>
         </Card>
       </div>
