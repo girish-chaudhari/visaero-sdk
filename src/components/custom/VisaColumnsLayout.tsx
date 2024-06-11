@@ -79,7 +79,12 @@ const VisaColumnsLayout = (props: Props) => {
 
   const path = usePathname();
   // console.log(ipData);
-  let opt = nationalities.find((x) => x?.cioc === ipData?.country_code_iso3);
+  let opt = useMemo(
+    () => nationalities.find((x) => x?.cioc === ipData?.country_code_iso3),
+    [nationalities, ipData]
+  );
+
+  console.log(opt);
   const [colLayout, setColLayout] = useState(1);
   const [selectedCurrency, setSelectedCurrency] =
     useState<string>(defaultCurrency);
@@ -109,6 +114,21 @@ const VisaColumnsLayout = (props: Props) => {
   );
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 
+  console.log(opt);
+
+  const traveling_to_identity: string = useMemo(() => {
+    if (!travellingTo?.identity) return "";
+
+    console.log(cor);
+
+    const parts: string[] = travellingTo.identity.split("_");
+    parts[0] = (cor?.cioc as string) ?? (parts[0] as string); // Replace the first element
+
+    return parts.join("_");
+  }, [travellingTo, cor]);
+
+  console.log(traveling_to_identity);
+
   const getVisaOffersData = useMutation({
     mutationKey: ["getVisaOffers"],
     mutationFn: () =>
@@ -117,7 +137,7 @@ const VisaColumnsLayout = (props: Props) => {
         managed_by: "master",
         nationality: nationality?.value as string,
         travelling_to: travellingTo?.value as string,
-        travelling_to_identity: travellingTo?.identity as string,
+        travelling_to_identity: traveling_to_identity, //travellingTo?.identity as string,
         type: "qr-visa",
       }),
   });
@@ -164,6 +184,7 @@ const VisaColumnsLayout = (props: Props) => {
         value: x?.name,
         flag: x?.flag,
         icon: x?.flag,
+        cioc: x?.cioc,
       })) ?? [],
     []
   );
@@ -255,42 +276,7 @@ const VisaColumnsLayout = (props: Props) => {
       setSelectedVisa(undefined);
   };
 
-  const handleUploadDoc = async (
-    formData: FormData,
-    options: {
-      onUploadProgress: (progressEvent: AxiosProgressEvent) => void;
-      cancelToken: CancelToken;
-    }
-  ) => {
-    return axios.post(API.uploadAndExtractDocuments, formData, {
-      onUploadProgress: options.onUploadProgress,
-      cancelToken: options.cancelToken,
-    });
-  };
-
   // feel free to mode all these functions to separate utils
-  // here is just for simplicity
-  const onUploadProgress = (
-    progressEvent: AxiosProgressEvent,
-    file: File,
-    cancelSource: CancelTokenSource
-  ) => {
-    const progress = Math.round(
-      (progressEvent.loaded / (progressEvent.total ?? 0)) * 100
-    );
-
-    if (progress === 100) {
-      // setUploadedFiles((prevUploadedFiles) => {
-      //   return [...prevUploadedFiles, file];
-      // });
-
-      // setFilesToUpload((prevUploadProgress) => {
-      //   return prevUploadProgress.filter((item) => item.File !== file);
-      // });
-
-      return;
-    }
-  };
 
   const handleUploadFile = useCallback(async (acceptedFiles: File[]) => {
     console.log(acceptedFiles);
@@ -325,6 +311,12 @@ const VisaColumnsLayout = (props: Props) => {
                   ...resp?.dataobj,
                 ];
                 return newUploadedFiles;
+              });
+            } else {
+              toast({
+                variant: "destructive",
+                title: "Error uploading file",
+                description: "An error occurred while uploading your file",
               });
             }
           }
@@ -366,7 +358,7 @@ const VisaColumnsLayout = (props: Props) => {
           value={travellingTo}
         />
       </div>
-      <div className={`my-2 ${!!isCorEnabled ? "" : "hidden"}`}>
+      <div className={`mb-5 ${!!isCorEnabled ? "" : "hidden"}`}>
         <AutoSelect
           options={corData}
           name="origin"
