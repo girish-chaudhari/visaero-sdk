@@ -299,14 +299,7 @@ const VisaColumnsLayout = (props: Props) => {
       formData.append("document", file);
       formData.append("host", "visaero");
       const cancelSource = axios.CancelToken.source();
-      await uploadAndExtractDocuments.mutateAsync(formData, {
-        onSuccess: (data) => {
-          // console.log(data)
-          setUploadedFiles((prevUploadedFiles: UploadedFile[]) => {
-            const newUploadedFiles = [...prevUploadedFiles, ...data?.dataobj];
-            return newUploadedFiles;
-          });
-        },
+      let data = await uploadAndExtractDocuments.mutateAsync(formData, {
         onError: (error) => {
           toast({
             variant: "destructive",
@@ -315,11 +308,29 @@ const VisaColumnsLayout = (props: Props) => {
           });
         },
       });
+
+      console.log(data);
+      return data;
     });
 
     try {
-      await Promise.all(fileUploadBatch);
-      // console.log(fileUploadBatch)
+      let res = await Promise.all(fileUploadBatch).then((res: any) => {
+        console.log(res);
+        res.map(
+          (resp: { data: "success" | "error"; dataobj: UploadedFile[] }) => {
+            if (resp.data === "success") {
+              setUploadedFiles((prevUploadedFiles: UploadedFile[]) => {
+                const newUploadedFiles = [
+                  ...prevUploadedFiles,
+                  ...resp?.dataobj,
+                ];
+                return newUploadedFiles;
+              });
+            }
+          }
+        );
+      });
+      console.log(res);
       toast({
         variant: "default",
         title: "Files uploaded successfully!",
@@ -657,9 +668,12 @@ const VisaColumnsLayout = (props: Props) => {
                       <DialogTitle>Uploaded Documents</DialogTitle>
                     </DialogHeader>
                     <ScrollArea className="h-[60vh]">
-                      <div className="grid grid-cols-4 gap-4">
+                      <div className="grid lg:grid-cols-4 sm:grid-cols-3 gap-4">
                         {uploadedFiles.map((x: UploadedFile, i: number) => (
-                          <div key={i} className="bg-gray-300 p-3 rounded-lg">
+                          <div
+                            key={i}
+                            className="bg-gray-300 p-3 rounded-lg max-h-72"
+                          >
                             <div className="flex justify-center items-center gap-4 my-2">
                               {" "}
                               <span className="text-ellipsis overflow-hidden">
@@ -667,13 +681,18 @@ const VisaColumnsLayout = (props: Props) => {
                               </span>{" "}
                               <Trash2 className="h-[24px] w-[24px] cursor-pointer" />
                             </div>
-                            <Image
-                              src={x?.file}
-                              height={275}
-                              width={225}
-                              alt={x.file_name}
-                              className="rounded"
-                            />
+                            <div className="h-32 flex align-bottom justify-center relative">
+                              <Image
+                                src={x?.file}
+                                // height={275}
+                                // width={225}
+                                alt={x.file_name}
+                                // objectFit="fill"
+                                fill
+                                // objectFit="contain"
+                                className="rounded max-h-36 max-w-52 w-full object-contain "
+                              />
+                            </div>
                           </div>
                         ))}
                       </div>
