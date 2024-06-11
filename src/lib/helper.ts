@@ -88,6 +88,7 @@ export const defaultStyles = {
     ...base,
     "input:focus": {
       boxShadow: "none",
+      outline: 'none'
     },
   }),
   menu: (base: any) => ({

@@ -20,7 +20,7 @@ import clsx from "clsx";
 import { CircleChevronRight, LoaderCircle, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { SetStateAction, useCallback, useMemo, useState } from "react";
 import { type Option } from "../ui/autocomplete";
 import AutoSelect from "../ui/autoselect";
 import { Button } from "../ui/button";
@@ -48,6 +48,17 @@ import axios from "axios";
 import Image from "next/image";
 import Dragger from "../Dragger";
 import { toast } from "../ui/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Nationality {
   name: string;
@@ -671,7 +682,43 @@ const VisaColumnsLayout = (props: Props) => {
                               <span className="text-ellipsis overflow-hidden">
                                 {x.file_name}
                               </span>{" "}
-                              <Trash2 className="h-[24px] w-[24px] cursor-pointer" />
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Trash2 className="h-[24px] w-[24px] cursor-pointer" />
+                                </AlertDialogTrigger>
+
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      Confirm Deletion
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete this
+                                      document? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>
+                                      Cancel
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction
+                                      className="bg-red-500 hover:bg-red-600"
+                                      onClick={() =>
+                                        setUploadedFiles((prev) =>
+                                          prev.filter(
+                                            (
+                                              x: UploadedFile,
+                                              curr_ind: number
+                                            ) => curr_ind !== i
+                                          )
+                                        )
+                                      }
+                                    >
+                                      Continue
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             </div>
                             <div className="h-32 flex align-bottom justify-center relative">
                               <Image
