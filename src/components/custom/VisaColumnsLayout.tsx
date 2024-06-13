@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CurrencyProps, IPData, UploadedFile, VisaOfferProps } from "@/types";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
 import { CircleChevronRight, LoaderCircle, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -58,6 +58,8 @@ import axios from "axios";
 import Image from "next/image";
 import Dragger from "../Dragger";
 import { toast } from "../ui/use-toast";
+import { browserQueryClient } from "../layout/providers";
+import { useRouter } from "next/navigation";
 
 interface Nationality {
   name: string;
@@ -74,6 +76,8 @@ type Props = {
 
 const VisaColumnsLayout = (props: Props) => {
   const { nationalities, ipData, supportedCurrencies: currencies } = props;
+  const queryClient = useQueryClient();
+  const router = useRouter();
 
   const defaultCurrency = useMemo(() => {
     const availableCurrencies = currencies.map((x) => x.currency);
@@ -235,6 +239,16 @@ const VisaColumnsLayout = (props: Props) => {
 
   const corData = structuredClone(natinoalitiesData);
 
+  function compare(a: any, b: any) {
+    if (a.value < b.value) {
+      return -1;
+    }
+    if (a.value > b.value) {
+      return 1;
+    }
+    return 0;
+  }
+
   const travellingToOptions = useMemo(
     () =>
       travellingToData?.data == "success"
@@ -258,7 +272,7 @@ const VisaColumnsLayout = (props: Props) => {
               icon: x?.flag,
               cioc: x.cioc,
             })
-          )
+          ).sort(compare)
         : [],
     [travellingToData]
   );
@@ -277,11 +291,11 @@ const VisaColumnsLayout = (props: Props) => {
   useMemo(() => {
     if (colLayout !== 3 && !!uploadedFiles?.length) {
       setUploadedFiles([]);
-      // @ts-expect-error
-      for (let a = 0; a < abortControllerRef?.current?.length; a++) {
-        //@ts-expect-error
-        abortControllerRef.current[a]?.abort();
-      }
+      queryClient.cancelQueries({ queryKey: ["uploadAndExtractDocuments"] });
+      // for (let a = 0; a < abortControllerRef?.current?.length; a++) {
+      //   //@ts-expect-error
+      //   abortControllerRef.current[a]?.abort();
+      // }
     }
   }, [colLayout]);
 
@@ -791,18 +805,47 @@ const VisaColumnsLayout = (props: Props) => {
           </VisaCardComponent>
         </div>
         <Card className="w-full flex items-center justify-end p-3 rounded-b-none ">
-          <Link href={path + "/review"}>
-            <Button
-              variant={"destructive"}
-              loading={createApplicationWithDocuments.isPending}
-              disabled={
-                !!!uploadedFiles?.length || uploadAndExtractDocuments.isPending
-              }
-              onClick={() => createApplicationWithDocuments.mutate()}
-            >
-              Proceed{" "}
-            </Button>
-          </Link>
+          {/* <Link href={path + "/review"}> */}
+          <Button
+            variant={"destructive"}
+            loading={createApplicationWithDocuments.isPending}
+            disabled={
+              !!!uploadedFiles?.length || uploadAndExtractDocuments.isPending
+            }
+            onClick={() =>
+              createApplicationWithDocuments.mutate(undefined, {
+                onSuccess(data, variables, context) {
+                  console.log(data);
+                  if (data?.data == "success") {
+                    router.push(path + "/review");
+                    // success toast
+                    toast({
+                      title: "Application created successfully",
+                      description:
+                        "Your application has been created successfully",
+                      variant: "success",
+                    });
+                  } else {
+                    toast({
+                      title: "Error",
+                      description: "Failed to create application",
+                      variant: "destructive",
+                    });
+                  }
+                },
+                onError: () => {
+                  toast({
+                    title: "Error",
+                    description: "Something went wrong",
+                    variant: "destructive",
+                  });
+                },
+              })
+            }
+          >
+            Proceed{" "}
+          </Button>
+          {/* </Link> */}
         </Card>
       </div>
     </>
