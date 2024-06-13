@@ -3,7 +3,12 @@
 import axios from "@/config";
 import API from "@/services/api";
 import { IPData, VisaOfferProps } from "@/types";
-import { AxiosProgressEvent, CancelToken, CancelTokenSource } from "axios";
+import {
+  AxiosProgressEvent,
+  Cancel,
+  CancelToken,
+  CancelTokenSource,
+} from "axios";
 import { revalidatePath } from "next/cache";
 
 const host = "visaero";
@@ -121,12 +126,23 @@ export const uploadAndExtractDocumentsAction = async (formData: FormData) => {
   console.log("file upload", formData);
   // const { cancelToken,  } = options;
   // const { cancelToken, onUploadProgress } = options;
+
+
+
   let request = await axios.post(API.uploadAndExtractDocuments, formData, {
     // onUploadProgress,
     // onUploadProgress: ProgressEvent,
-    // cancelToken: options.cancelToken.token,
+    // cancelToken: cancelToken
+    // signal: signal as any,
     // ...payload,
   });
+  console.log("request from server>>", request.data);
+  return request.data;
+};
+
+export const createApplicationWithDocumentsAction = async (data: any) => {
+  console.log("file upload", data);
+  let request = await axios.post(API.createApplicationWithDocuments, data);
   console.log("request from server>>", request.data);
   return request.data;
 };

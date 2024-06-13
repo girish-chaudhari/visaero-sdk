@@ -18,6 +18,7 @@ export const getSupportedCurrencies = "/visa-admin/getSupportedCurrencies";
 export const getVisaOffers = "/visa/getVisaOffers";
 export const saveVisaForm = "/visa/getVisaOffers";
 export const uploadAndExtractDocuments = "/process-documents/uploadAndExtractDocument";
+export const createApplicationWithDocuments = "/visa/createApplicationWithDocuments";
 
 const API = {
   getEnterpriseAccountHostDetails,
@@ -34,7 +35,8 @@ const API = {
   getSupportedCurrencies,
   getVisaOffers,
   saveVisaForm,
-  uploadAndExtractDocuments
+  uploadAndExtractDocuments,
+  createApplicationWithDocuments
 };
 
 export default API;

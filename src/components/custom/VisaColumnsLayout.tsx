@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  createApplicationWithDocumentsAction,
   getTravellingTo,
   getVisaOffers,
   uploadAndExtractDocumentsAction,
@@ -12,15 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import API from "@/services/api";
 import { CurrencyProps, IPData, UploadedFile, VisaOfferProps } from "@/types";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { AxiosProgressEvent, CancelToken, CancelTokenSource } from "axios";
 import clsx from "clsx";
 import { CircleChevronRight, LoaderCircle, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { SetStateAction, useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { type Option } from "../ui/autocomplete";
 import AutoSelect from "../ui/autoselect";
 import { Button } from "../ui/button";
@@ -44,10 +43,6 @@ import { Skeleton } from "../ui/skeleton";
 import { DatePickerWithRange } from "./DateRangeModal";
 import VisaCardComponent from "./VisaCardComponent";
 // import axios from "@/config";
-import axios from "axios";
-import Image from "next/image";
-import Dragger from "../Dragger";
-import { toast } from "../ui/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,6 +54,10 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import axios from "axios";
+import Image from "next/image";
+import Dragger from "../Dragger";
+import { toast } from "../ui/use-toast";
 
 interface Nationality {
   name: string;
@@ -97,11 +96,12 @@ const VisaColumnsLayout = (props: Props) => {
 
   console.log(opt);
   const [colLayout, setColLayout] = useState(1);
+  const abortControllerRef = useRef<AbortController[] | null>(null);
   const [selectedCurrency, setSelectedCurrency] =
     useState<string>(defaultCurrency);
   const [isCorEnabled, setIsCorEnabled] = useState<boolean>(false);
   const [modalData, setModalData] = useState<VisaOfferProps | undefined>();
-  const [nationality, setNationality] = useState<Option | undefined>(
+  const [nationality, setNationality] = useState<Option | null | undefined>(
     opt && {
       label: opt?.name ?? "",
       value: opt?.name ?? "",
@@ -109,8 +109,8 @@ const VisaColumnsLayout = (props: Props) => {
       ...(opt ?? {}),
     }
   );
-  const [travellingTo, setTravellingTo] = useState<Option | undefined>();
-  const [cor, setCor] = useState<Option | undefined>(
+  const [travellingTo, setTravellingTo] = useState<Option | null>();
+  const [cor, setCor] = useState<Option | null | undefined>(
     opt && {
       label: opt?.name ?? "",
       value: opt?.name ?? "",
@@ -152,10 +152,43 @@ const VisaColumnsLayout = (props: Props) => {
         type: "qr-visa",
       }),
   });
+
+  const createApplicationWithDocuments = useMutation({
+    mutationKey: ["createApplicationWithDocuments"],
+    mutationFn: () =>
+      createApplicationWithDocumentsAction({
+        currency: selectedCurrency,
+        base_currency_symbol: selectedCurrency,
+        visa_lancer_code: null,
+        documentsArray: uploadedFiles,
+        nationality: nationality?.value as string,
+        travelling_to: travellingTo?.value as string,
+        travelling_to_country: travellingTo?.cioc as string,
+        travelling_to_identity: traveling_to_identity, //travellingTo?.identity as string,
+        application_type: "qr-visa",
+        journey_start_date: "",
+        journey_end_date: "",
+        visa_category: visaObj?.visa_category,
+        visa_code: visaObj?.visa_details.visa_code,
+        visa_entry_type: visaObj?.entry_type,
+        visa_fees: visaObj?.visa_details.fees,
+        visa_id: visaObj?.visa_details.visa_id,
+        duration_type: visaObj?.visa_details.duration_type,
+        total_days: visaObj?.visa_details.duration_days,
+        is_visaero_insurance_bundled: !!visaObj?.is_visaero_insurance_bundled,
+        insurance_details: visaObj?.insurance_details,
+        user_id: "66628162bec3f78f84b6d5d0",
+        platform: "web",
+        user_type: "customer",
+        application_created_by_user: "customer_user",
+      }),
+  });
   const uploadAndExtractDocuments = useMutation({
     mutationKey: ["uploadAndExtractDocuments"],
     mutationFn: (formData: FormData) => {
       console.log(formData);
+
+      // const cancelSource = axios.CancelToken.source();
       return uploadAndExtractDocumentsAction(formData);
     },
   });
@@ -214,6 +247,7 @@ const VisaColumnsLayout = (props: Props) => {
               name: string;
               value: string;
               icon: string;
+              cioc: string;
             }) => ({
               label: x?.name,
               value: x?.name,
@@ -222,6 +256,7 @@ const VisaColumnsLayout = (props: Props) => {
               cor_required: !!x?.cor_required,
               identity: x.identity,
               icon: x?.flag,
+              cioc: x.cioc,
             })
           )
         : [],
@@ -234,10 +269,21 @@ const VisaColumnsLayout = (props: Props) => {
   const handleNationalityChange = (opt: unknown | Option) => {
     setNationality(opt as Option);
     setCor(opt as Option);
-    setTravellingTo(undefined);
+    setTravellingTo(null);
     setColLayout(1);
     setIsCorEnabled(false);
   };
+
+  useMemo(() => {
+    if (colLayout !== 3 && !!uploadedFiles?.length) {
+      setUploadedFiles([]);
+      // @ts-expect-error
+      for (let a = 0; a < abortControllerRef?.current?.length; a++) {
+        //@ts-expect-error
+        abortControllerRef.current[a]?.abort();
+      }
+    }
+  }, [colLayout]);
 
   const handleCurrencyChange = (cur: string) => {
     setSelectedCurrency(cur);
@@ -295,7 +341,6 @@ const VisaColumnsLayout = (props: Props) => {
       const formData = new FormData();
       formData.append("document", file);
       formData.append("host", "visaero");
-      const cancelSource = axios.CancelToken.source();
       let data = await uploadAndExtractDocuments.mutateAsync(formData, {
         onError: (error) => {
           toast({
@@ -747,7 +792,16 @@ const VisaColumnsLayout = (props: Props) => {
         </div>
         <Card className="w-full flex items-center justify-end p-3 rounded-b-none ">
           <Link href={path + "/review"}>
-            <Button variant={"destructive"}>Proceed </Button>
+            <Button
+              variant={"destructive"}
+              loading={createApplicationWithDocuments.isPending}
+              disabled={
+                !!!uploadedFiles?.length || uploadAndExtractDocuments.isPending
+              }
+              onClick={() => createApplicationWithDocuments.mutate()}
+            >
+              Proceed{" "}
+            </Button>
           </Link>
         </Card>
       </div>
