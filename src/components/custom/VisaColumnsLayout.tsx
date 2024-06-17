@@ -54,12 +54,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import axios from "axios";
+import mainAxios, { CancelTokenSource, CanceledError } from "axios";
+import axios from "@/config";
 import Image from "next/image";
 import Dragger from "../Dragger";
 import { toast } from "../ui/use-toast";
 import { browserQueryClient } from "../layout/providers";
 import { useRouter } from "next/navigation";
+import API from "@/services/api";
 
 interface Nationality {
   name: string;
@@ -189,9 +191,23 @@ const VisaColumnsLayout = (props: Props) => {
   });
   const uploadAndExtractDocuments = useMutation({
     mutationKey: ["uploadAndExtractDocuments"],
-    mutationFn: (formData: FormData) => {
-      console.log(formData);
+    mutationFn: async (formData: FormData) => {
+      // let cancelSource: CancelTokenSource = mainAxios.CancelToken.source();
 
+      const controller: AbortController = new AbortController();
+      // Get the abortController's signal
+      const signal = controller.signal;
+
+      abortControllerRef.current
+        ? abortControllerRef.current.push(controller)
+        : (abortControllerRef.current = [controller]);
+
+      console.log(formData);
+      let request = await axios.post(API.uploadAndExtractDocuments, formData, {
+        // cancelToken: cancelSource.token,
+        signal,
+      });
+      return request.data;
       // const cancelSource = axios.CancelToken.source();
       return uploadAndExtractDocumentsAction(formData);
     },
@@ -252,27 +268,29 @@ const VisaColumnsLayout = (props: Props) => {
   const travellingToOptions = useMemo(
     () =>
       travellingToData?.data == "success"
-        ? travellingToData?.dataobj?.data?.map(
-            (x: {
-              managed_by?: string;
-              cor_required?: boolean;
-              identity: string;
-              flag: string;
-              name: string;
-              value: string;
-              icon: string;
-              cioc: string;
-            }) => ({
-              label: x?.name,
-              value: x?.name,
-              flag: x?.flag,
-              managed_by: x?.managed_by,
-              cor_required: !!x?.cor_required,
-              identity: x.identity,
-              icon: x?.flag,
-              cioc: x.cioc,
-            })
-          ).sort(compare)
+        ? travellingToData?.dataobj?.data
+            ?.map(
+              (x: {
+                managed_by?: string;
+                cor_required?: boolean;
+                identity: string;
+                flag: string;
+                name: string;
+                value: string;
+                icon: string;
+                cioc: string;
+              }) => ({
+                label: x?.name,
+                value: x?.name,
+                flag: x?.flag,
+                managed_by: x?.managed_by,
+                cor_required: !!x?.cor_required,
+                identity: x.identity,
+                icon: x?.flag,
+                cioc: x.cioc,
+              })
+            )
+            .sort(compare)
         : [],
     [travellingToData]
   );
@@ -289,13 +307,22 @@ const VisaColumnsLayout = (props: Props) => {
   };
 
   useMemo(() => {
+    if (
+      uploadAndExtractDocuments.isPending &&
+      colLayout !== 3 &&
+      abortControllerRef.current
+    ) {
+      for (let index = 0; index < abortControllerRef.current?.length; index++) {
+        abortControllerRef.current?.[index] &&
+          // abortControllerRef.current?.[index].abort(""); // write Opearation Canceld by user message in abort
+          abortControllerRef.current?.[index].abort(
+            "Operation Cancelled by user"
+          );
+      }
+      abortControllerRef.current = [];
+    }
     if (colLayout !== 3 && !!uploadedFiles?.length) {
       setUploadedFiles([]);
-      queryClient.cancelQueries({ queryKey: ["uploadAndExtractDocuments"] });
-      // for (let a = 0; a < abortControllerRef?.current?.length; a++) {
-      //   //@ts-expect-error
-      //   abortControllerRef.current[a]?.abort();
-      // }
     }
   }, [colLayout]);
 
@@ -355,14 +382,16 @@ const VisaColumnsLayout = (props: Props) => {
       const formData = new FormData();
       formData.append("document", file);
       formData.append("host", "visaero");
+
       let data = await uploadAndExtractDocuments.mutateAsync(formData, {
-        onError: (error) => {
-          toast({
-            variant: "destructive",
-            title: "Error uploading files",
-            description: "An error occurred while uploading your files",
-          });
-        },
+        // onError: (error) => {
+        //   console.log(error)
+        //   toast({
+        //     variant: "destructive",
+        //     title: "Error uploading files",
+        //     description: "An error occurred while uploading your files",
+        //   });
+        // },
       });
 
       console.log(data);
@@ -398,8 +427,17 @@ const VisaColumnsLayout = (props: Props) => {
         title: "Files uploaded successfully!",
         description: "Your files have been uploaded successfully",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error uploading files: ", error);
+      //   console.log(error)
+      if (error.code === "ERR_CANCELED") {
+        toast({
+          variant: "destructive",
+          title: "Upload canceled",
+          description: "The document upload was canceled due to some changes.", // documents canceled due to some changes messages
+        });
+        return;
+      }
       toast({
         variant: "destructive",
         title: "Error uploading files",
