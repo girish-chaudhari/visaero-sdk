@@ -3,7 +3,6 @@
 import axios from "@/config";
 import API from "@/services/api";
 import { IPData, VisaOfferProps } from "@/types";
-import { AxiosProgressEvent, Cancel, CancelToken, CancelTokenSource } from "axios";
 import { revalidatePath } from "next/cache";
 
 const host = "visaero";
@@ -132,4 +131,13 @@ export const createApplicationWithDocumentsAction = async (data: any) => {
   console.log("request from server>>", request.data);
   return request.data;
 };
-
+export const getVisaDocumentsForOffer = async (data: {
+  travelling_to_identity: string;
+  visa_id: string;
+}) => {
+  let payload = { ...data, host };
+  console.log("get documents", data);
+  let request = await axios.post(API.getVisaDocuments, payload);
+  console.log("request from server>>", request.data);
+  return request.data;
+};

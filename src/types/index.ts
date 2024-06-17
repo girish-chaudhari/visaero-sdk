@@ -5,11 +5,9 @@ export interface AutoSelectInput {
 }
 
 export interface enterpriseObj {
-  data: string | undefined, 
-  dataObj: object | null | undefined
+  data: string | undefined;
+  dataObj: object | null | undefined;
 }
-
-
 
 export interface CurrencyProps {
   country: string;
@@ -19,7 +17,7 @@ export interface CurrencyProps {
   value_to_usd: string;
   exchange_rate: number;
   taxes: any[]; // Use a more specific type if you know the structure of the objects in the taxes array
-} 
+}
 
 export interface EnterpriseData {
   _id: string;
@@ -64,7 +62,6 @@ export interface IPData {
   org: string;
 }
 
-
 export interface NavItem {
   title: string;
   href?: string;
@@ -95,8 +92,6 @@ export interface FooterItem {
 export type MainNavItem = NavItemWithOptionalChildren;
 
 export type SidebarNavItem = NavItemWithChildren;
-
-
 
 interface BaseFeesStructure {
   adult_govt_fee: string;
@@ -182,7 +177,6 @@ export interface VisaOfferProps {
   is_insurance_cloned?: boolean; // Optional field
 }
 
-
 export interface UploadedFile {
   doc_identifier: string;
   file: string;
@@ -194,4 +188,44 @@ export interface UploadedFile {
   original_file_name: string;
   mime_type: string;
   processed_by: string;
+}
+
+export interface DocSpecification {
+  size: string;
+  format: string[];
+  max_width: string;
+  max_height: string;
+  aspect_ratio: string;
+  face_ratio: string;
+  background: string;
+}
+
+interface Vault {
+  level: string;
+  category: string;
+}
+
+export interface DocSnap {
+  doc_name: string;
+  doc_description: string;
+  rpa_doc_name: string;
+  mandatory: boolean;
+  doc_specification: DocSpecification;
+  vault: Vault[];
+  ocr_required: boolean;
+  valid_days: number;
+  doc_type: string;
+  doc_display_name: string;
+  doc_short_description: string;
+  is_reusable?: boolean;
+}
+
+export interface Document {
+  doc_id: string;
+  doc_type: string;
+  doc_display_name: string;
+  doc_short_description: string;
+  doc_description: string;
+  doc_snap: DocSnap[];
+  document_required_for_routes?: string[];
 }

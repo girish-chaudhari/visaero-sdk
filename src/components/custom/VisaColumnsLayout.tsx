@@ -3,6 +3,7 @@
 import {
   createApplicationWithDocumentsAction,
   getTravellingTo,
+  getVisaDocumentsForOffer,
   getVisaOffers,
   uploadAndExtractDocumentsAction,
 } from "@/actions/new-visa";
@@ -13,16 +14,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CurrencyProps, IPData, UploadedFile, VisaOfferProps } from "@/types";
+import {
+  CurrencyProps,
+  Document,
+  IPData,
+  UploadedFile,
+  VisaOfferProps,
+} from "@/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
 import {
+  Check,
   ChevronLeft,
   CircleChevronRight,
+  Clipboard,
+  Info,
   LoaderCircle,
   Trash2,
 } from "lucide-react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { type Option } from "../ui/autocomplete";
@@ -59,14 +68,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import mainAxios, { CancelTokenSource, CanceledError } from "axios";
 import axios from "@/config";
+import API from "@/services/api";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import Dragger from "../Dragger";
 import { toast } from "../ui/use-toast";
-import { browserQueryClient } from "../layout/providers";
-import { useRouter } from "next/navigation";
-import API from "@/services/api";
 
 interface Nationality {
   name: string;
@@ -107,6 +114,7 @@ const VisaColumnsLayout = (props: Props) => {
 
   console.log(opt);
   const [colLayout, setColLayout] = useState(1);
+  const [isCopied, setIsCopied] = useState<boolean>(false);
   const abortControllerRef = useRef<AbortController[] | null>(null);
   const [selectedCurrency, setSelectedCurrency] =
     useState<string>(defaultCurrency);
@@ -197,8 +205,6 @@ const VisaColumnsLayout = (props: Props) => {
   const uploadAndExtractDocuments = useMutation({
     mutationKey: ["uploadAndExtractDocuments"],
     mutationFn: async (formData: FormData) => {
-      // let cancelSource: CancelTokenSource = mainAxios.CancelToken.source();
-
       const controller: AbortController = new AbortController();
       // Get the abortController's signal
       const signal = controller.signal;
@@ -215,6 +221,15 @@ const VisaColumnsLayout = (props: Props) => {
       return request.data;
       // const cancelSource = axios.CancelToken.source();
       return uploadAndExtractDocumentsAction(formData);
+    },
+  });
+  const getVisaOffersDocuments = useMutation({
+    mutationKey: ["getVisaDocuments"],
+    mutationFn: async (data: {
+      travelling_to_identity: string;
+      visa_id: string;
+    }) => {
+      return getVisaDocumentsForOffer(data);
     },
   });
 
@@ -347,7 +362,21 @@ const VisaColumnsLayout = (props: Props) => {
     setVisaObj(obj);
     setColLayout(3);
     setSelectedVisa(ind);
+    getVisaOffersDocuments.mutate({
+      visa_id: obj?.visa_details?.visa_id,
+      travelling_to_identity: traveling_to_identity,
+    });
   };
+
+  console.log(getVisaOffersDocuments.data);
+
+  const docsArr: Document[] = useMemo(
+    () =>
+      getVisaOffersDocuments.data?.data == "success"
+        ? getVisaOffersDocuments.data?.dataobj?.required_documents
+        : [],
+    [getVisaOffersDocuments]
+  );
 
   const handleTravellingToChange = (
     opt:
@@ -452,9 +481,9 @@ const VisaColumnsLayout = (props: Props) => {
   }, []);
 
   const handleBackClicked = useCallback(() => {
-    setSelectedVisa(undefined)
-    setVisaObj(undefined)
-    setColLayout(2)
+    setSelectedVisa(undefined);
+    setVisaObj(undefined);
+    setColLayout(2);
   }, []);
 
   const renderVisaTypeCard = () => (
@@ -618,7 +647,9 @@ const VisaColumnsLayout = (props: Props) => {
               {getVisaOffersData.isPending ? (
                 <div className="px-3 max-w-md mx-auto">
                   <Skeleton className=" w-[150px] mt-3 ml-auto h-8 rounded-md" />
-                  <LoadingVisaCards />
+                  <LoadingVisaCards
+                    totalCards={!!!isNaN(selectedVisa as any) ? 1 : 4}
+                  />
                 </div>
               ) : (
                 <>
@@ -635,7 +666,10 @@ const VisaColumnsLayout = (props: Props) => {
                           )}
                         >
                           {!!!isNaN(selectedVisa as any) && (
-                            <ChevronLeft onClick={handleBackClicked} />
+                            <ChevronLeft
+                              onClick={handleBackClicked}
+                              className="cursor-pointer"
+                            />
                           )}
                           <Select
                             value={selectedCurrency}
@@ -654,39 +688,44 @@ const VisaColumnsLayout = (props: Props) => {
                           </Select>
                         </div>
                       )}
-                      <div className={"w-full max-w-md m-auto flex overflow-hidden"}>
+                      <div
+                        className={
+                          "w-full max-w-md m-auto flex overflow-hidden"
+                        }
+                      >
                         <div
                           className={clsx(
                             "space-y-5 pb-5 px-3 flex-grow w-full max-w-md mx-auto shrink-0",
                             {
                               "-translate-x-full transition-all duration-1000 ease-out":
-                                !!selectedVisa,
+                                !!!isNaN(selectedVisa as any),
                               "translate-x-0 transition-all duration-1000 ease-out":
-                                !!!selectedVisa,
+                                !!isNaN(selectedVisa as any),
                             }
                           )}
                         >
-                          {visaOffersData?.map(
-                            (x: VisaOfferProps, i: number) => (
-                              <VisaCard
-                                x={x}
-                                handleVisaClicked={handleVisaClicked}
-                                setIsOpenModal={setIsOpenModal}
-                                setModalData={setModalData}
-                                selectedVisa={selectedVisa as number}
-                                i={i}
-                              />
-                            )
-                          )}
+                          {!!isNaN(selectedVisa as any) &&
+                            visaOffersData?.map(
+                              (x: VisaOfferProps, i: number) => (
+                                <VisaCard
+                                  x={x}
+                                  handleVisaClicked={handleVisaClicked}
+                                  setIsOpenModal={setIsOpenModal}
+                                  setModalData={setModalData}
+                                  selectedVisa={selectedVisa as number}
+                                  i={i}
+                                />
+                              )
+                            )}
                         </div>
                         <div
                           className={clsx(
                             "space-y-5 pb-5 px-3 flex-grow max-w-md mx-auto w-full shrink-0",
                             {
                               "-translate-x-full transition-all duration-1000 ease-out":
-                                !!selectedVisa,
+                                !!!isNaN(selectedVisa as any),
                               "translate-x-0 transition-all duration-1000 ease-out":
-                                !!!selectedVisa,
+                                !!isNaN(selectedVisa as any),
                             }
                           )}
                         >
@@ -697,7 +736,85 @@ const VisaColumnsLayout = (props: Props) => {
                               setModalData={setModalData}
                               selectedVisa={selectedVisa as number}
                               i={selectedVisa as number}
-                            />
+                            >
+                              <div className="text-md font-bold flex justify-between mb-3 text-black bg-gray-100 p-2 rounded">
+                                Documents{" "}
+                                {!getVisaOffersDocuments.isPending && (
+                                  <span>
+                                    {isCopied ? (
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[0.7rem] font-semibold text-slate-500">
+                                          Copied
+                                        </span>
+                                        <Check className="text-green-500 h-5 w-5" />
+                                      </div>
+                                    ) : (
+                                      <Clipboard
+                                        onClick={() => {
+                                          setIsCopied(true);
+                                          setTimeout(() => {
+                                            setIsCopied(false);
+                                          }, 1500);
+                                        }}
+                                        className="h-5 w-5 cursor-pointer"
+                                      />
+                                    )}
+                                  </span>
+                                )}
+                              </div>
+                              {getVisaOffersDocuments.isPending ? (
+                                <div className="space-y-3">
+                                  <Skeleton className="h-4 w-[250px]" />
+                                  <Skeleton className="h-4 w-[200px]" />
+                                </div>
+                              ) : (
+                                <>
+                                  {!!docsArr?.length ? (
+                                    <ul className="list-inside marker:text-primary space-y-2">
+                                      <AlertDialog>
+                                        {docsArr?.map((a: Document) => (
+                                          <>
+                                            <li className="text-xs font-semibold">
+                                              <div className="flex justify-between items-center">
+                                                {a?.doc_display_name}{" "}
+                                                <Info className="h-4 w-4 cursor-pointer" />
+                                              </div>
+
+                                              <div className="text-[10px] font-normal">
+                                                {a?.doc_short_description}
+                                              </div>
+                                            </li>
+                                          </>
+                                        ))}
+                                      </AlertDialog>
+                                    </ul>
+                                  ) : (
+                                    <div>No Data Found!</div>
+                                  )}
+                                </>
+                              )}
+                              {/* <AlertDialog>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      {a?.doc_display_name}
+                                      <small>{a?.doc_short_description}</small>
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      {a?.doc_description}
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>
+                                      Cancel
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction>
+                                      Continue
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog> */}
+                            </VisaCard>
                           )}
                         </div>
                       </div>
@@ -729,7 +846,7 @@ const VisaColumnsLayout = (props: Props) => {
                   onDrop: handleUploadFile,
                 }}
               />
-              {uploadAndExtractDocuments.isPending && (
+              {uploadAndExtractDocuments.status === "pending" && (
                 <div className="my-2 flex gap-2 text-slate-500 text-xs items-center">
                   Documents are being uploaded{" "}
                   <LoaderCircle className="animate-spin text-primary h-5 w-5" />
@@ -878,8 +995,11 @@ const VisaColumnsLayout = (props: Props) => {
 
 export default VisaColumnsLayout;
 
-const LoadingVisaCards: React.FC = () => {
-  let cards = new Array(3).fill("");
+interface LoadingProps {
+  totalCards?: number;
+}
+const LoadingVisaCards: React.FC<LoadingProps> = ({ totalCards = 3 }) => {
+  let cards = new Array(totalCards).fill("");
   return (
     <>
       {cards.map((_, i) => (
@@ -898,6 +1018,7 @@ interface VisaCardProps {
   setModalData: (data: VisaOfferProps) => void;
   i: number;
   selectedVisa: number;
+  children?: React.ReactNode;
 }
 
 const VisaCard = ({
@@ -907,6 +1028,7 @@ const VisaCard = ({
   setModalData,
   selectedVisa,
   i,
+  children,
 }: VisaCardProps) => {
   return (
     <Card
@@ -936,9 +1058,6 @@ const VisaCard = ({
             </span>
           </div>
         )}
-        {/* <CardDescription className="text-sm ">
-      Card Description
-    </CardDescription> */}
       </CardHeader>
       <CardContent className="text-sm text-slate-500 space-y-1 min-h-32">
         <div className="pb-1 pt-4 text-sm font-bold text-black capitalize">
@@ -961,6 +1080,13 @@ const VisaCard = ({
               {ins.name}: {ins.value}
             </div>
           ))}
+
+        {children && (
+          <div>
+            <Separator className="my-2" />
+            {children}
+          </div>
+        )}
       </CardContent>
       <CardFooter className="bg-primary pb-3 text-white">
         <div className="mt-3 w-full flex justify-between items-center">
