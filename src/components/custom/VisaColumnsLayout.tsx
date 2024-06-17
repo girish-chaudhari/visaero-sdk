@@ -632,88 +632,50 @@ const VisaColumnsLayout = (props: Props) => {
                           </Select>
                         </div>
                       )}
-                      <div className="space-y-5 pb-5 px-3 max-w-md mx-auto ">
-                        {visaOffersData?.map((x: VisaOfferProps, i: number) => (
-                          <Card
-                            key={i}
-                            className={clsx("overflow-hidden rounded-sm", {
-                              "border-primary shadow-sm shadow-primary border-2":
-                                i === selectedVisa,
-                            })}
-                            onClick={() => handleVisaClicked(x, i)}
-                          >
-                            <CardHeader className="bg-primary/30 px-2 py-3">
-                              <CardTitle className="text-md  px-4">
-                                <div className="flex justify-between items-center">
-                                  <div>
-                                    {x?.visa_details?.duration_days}{" "}
-                                    {x.visa_details.duration_type}{" "}
-                                    {x.visa_type === "evisa"
-                                      ? "e-Visa"
-                                      : x.visa_type}
-                                  </div>
-                                  {/* <div> 30 Days e-Visa</div> */}
-                                  <div>
-                                    {x.visa_details.fees.currency}{" "}
-                                    {x.visa_details.fees.total_cost}{" "}
-                                  </div>
-                                </div>
-                              </CardTitle>
-                              {x.is_visaero_insurance_bundled && (
-                                <div className="h-6 relative">
-                                  <span className="bg-primary capitalize text-white pl-3 pr-10 py-0.5 text-xs/5 absolute -left-3 ribin_cut">
-                                    + {x.insurance_details?.insurance_title}
-                                  </span>
-                                </div>
-                              )}
-                              {/* <CardDescription className="text-sm ">
-                              Card Description
-                            </CardDescription> */}
-                            </CardHeader>
-                            <CardContent className="text-sm text-slate-500 space-y-1 min-h-32">
-                              <div className="pb-1 pt-4 text-sm font-bold text-black capitalize">
-                                {x?.visa_category} | {x.processing_type} |{" "}
-                                {x.entry_type} Entry |{" "}
-                                {x.visa_details.duration_display}
-                              </div>
-
-                              <div className="text-xs">
-                                Visa Validity: {x.visa_details.visa_validity}
-                              </div>
-                              <div className="text-xs">
-                                Stay Validity: {x.visa_details.stay_validity}
-                              </div>
-                              <div className="text-xs">
-                                Processing Time:{" "}
-                                {x.visa_details.processing_time}
-                              </div>
-                              {x.is_visaero_insurance_bundled &&
-                                x.insurance_details?.insurance_coverage?.map(
-                                  (ins, i: number) => (
-                                    <div className="text-xs" key={i}>
-                                      {ins.name}: {ins.value}
-                                    </div>
-                                  )
-                                )}
-                            </CardContent>
-                            <CardFooter className="bg-primary pb-3 text-white">
-                              <div className="mt-3 w-full flex justify-between items-center">
-                                <div
-                                  className="underline text-sm hover:cursor-pointer font-bold"
-                                  onClick={(e) => {
-                                    setIsOpenModal(true);
-                                    setModalData(x);
-                                    // stop propogation
-                                    e.stopPropagation();
-                                  }}
-                                >
-                                  More Details
-                                </div>
-                                <CircleChevronRight />
-                              </div>
-                            </CardFooter>
-                          </Card>
-                        ))}
+                      <div
+                        className={"w-[200%] flex "}
+                      >
+                        <div
+                          className={clsx(
+                            "space-y-5 pb-5 px-3 flex-grow w-full max-w-md mx-auto",
+                            {
+                              "-translate-x-[106%] transition-all duration-1000 ease-out":
+                                !!selectedVisa,
+                            }
+                          )}
+                        >
+                          {visaOffersData?.map(
+                            (x: VisaOfferProps, i: number) => (
+                              <VisaCard
+                                x={x}
+                                handleVisaClicked={handleVisaClicked}
+                                setIsOpenModal={setIsOpenModal}
+                                setModalData={setModalData}
+                                selectedVisa={selectedVisa as number}
+                                i={i}
+                              />
+                            )
+                          )}
+                        </div>
+                        <div
+                          className={clsx(
+                            "space-y-5 pb-5 px-3 flex-grow max-w-md mx-auto w-full",
+                            {
+                              "-translate-x-[10%] transition-all duration-1000 ease-out":
+                                !!selectedVisa,
+                            }
+                          )}
+                        >
+                          {typeof selectedVisa === "number"  && (
+                              <VisaCard
+                                x={visaObj as VisaOfferProps}
+                                setIsOpenModal={setIsOpenModal}
+                                setModalData={setModalData}
+                                selectedVisa={selectedVisa as number}
+                                i={selectedVisa as number}
+                              />
+                            )}
+                        </div>
                       </div>
                     </>
                   ) : (
@@ -902,5 +864,96 @@ const LoadingVisaCards: React.FC = () => {
         </div>
       ))}
     </>
+  );
+};
+
+interface VisaCardProps {
+  x: VisaOfferProps;
+  handleVisaClicked?: (visa: VisaOfferProps, index: number) => void;
+  setIsOpenModal: (isOpen: boolean) => void;
+  setModalData: (data: VisaOfferProps) => void;
+  i: number;
+  selectedVisa: number;
+}
+
+const VisaCard = ({
+  x,
+  handleVisaClicked,
+  setIsOpenModal,
+  setModalData,
+  selectedVisa,
+  i,
+}: VisaCardProps) => {
+  return (
+    <Card
+      key={i}
+      className={clsx("overflow-hidden rounded-sm", {
+        "border-primary shadow-sm shadow-primary border-2": i === selectedVisa,
+      })}
+      onClick={() => handleVisaClicked && handleVisaClicked(x, i)}
+    >
+      <CardHeader className="bg-primary/30 px-2 py-3">
+        <CardTitle className="text-md  px-4">
+          <div className="flex justify-between items-center">
+            <div>
+              {x?.visa_details?.duration_days} {x.visa_details.duration_type}{" "}
+              {x.visa_type === "evisa" ? "e-Visa" : x.visa_type}
+            </div>
+            {/* <div> 30 Days e-Visa</div> */}
+            <div>
+              {x.visa_details.fees.currency} {x.visa_details.fees.total_cost}{" "}
+            </div>
+          </div>
+        </CardTitle>
+        {x.is_visaero_insurance_bundled && (
+          <div className="h-6 relative">
+            <span className="bg-primary capitalize text-white pl-3 pr-10 py-0.5 text-xs/5 absolute -left-3 ribin_cut">
+              + {x.insurance_details?.insurance_title}
+            </span>
+          </div>
+        )}
+        {/* <CardDescription className="text-sm ">
+      Card Description
+    </CardDescription> */}
+      </CardHeader>
+      <CardContent className="text-sm text-slate-500 space-y-1 min-h-32">
+        <div className="pb-1 pt-4 text-sm font-bold text-black capitalize">
+          {x?.visa_category} | {x.processing_type} | {x.entry_type} Entry |{" "}
+          {x.visa_details.duration_display}
+        </div>
+
+        <div className="text-xs">
+          Visa Validity: {x.visa_details.visa_validity}
+        </div>
+        <div className="text-xs">
+          Stay Validity: {x.visa_details.stay_validity}
+        </div>
+        <div className="text-xs">
+          Processing Time: {x.visa_details.processing_time}
+        </div>
+        {x.is_visaero_insurance_bundled &&
+          x.insurance_details?.insurance_coverage?.map((ins, i: number) => (
+            <div className="text-xs" key={i}>
+              {ins.name}: {ins.value}
+            </div>
+          ))}
+      </CardContent>
+      <CardFooter className="bg-primary pb-3 text-white">
+        <div className="mt-3 w-full flex justify-between items-center">
+          <div
+            className="underline text-sm hover:cursor-pointer font-bold"
+            onClick={(e) => {
+              setIsOpenModal(true);
+              setModalData(x);
+              // stop propogation
+              e.stopPropagation();
+            }}
+          >
+            More Details
+          </div>
+          <CircleChevronRight />
+        </div>
+      </CardFooter>
+    </Card>
   );
 };
