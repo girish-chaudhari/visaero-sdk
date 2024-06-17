@@ -16,7 +16,12 @@ import {
 import { CurrencyProps, IPData, UploadedFile, VisaOfferProps } from "@/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
-import { CircleChevronRight, LoaderCircle, Trash2 } from "lucide-react";
+import {
+  ChevronLeft,
+  CircleChevronRight,
+  LoaderCircle,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -446,6 +451,12 @@ const VisaColumnsLayout = (props: Props) => {
     }
   }, []);
 
+  const handleBackClicked = useCallback(() => {
+    setSelectedVisa(undefined)
+    setVisaObj(undefined)
+    setColLayout(2)
+  }, []);
+
   const renderVisaTypeCard = () => (
     <>
       <div className="mb-5 mt-5">
@@ -614,17 +625,28 @@ const VisaColumnsLayout = (props: Props) => {
                   {!!visaOffersData?.length ? (
                     <>
                       {!!currencies?.length && (
-                        <div className="my-3 px-3 border-b py-2 max-w-md mx-auto sticky z-10 top-0 bg-white">
+                        <div
+                          className={clsx(
+                            "my-3 px-3 border-b py-2 max-w-md mx-auto sticky z-10 top-0 bg-white flex items-center",
+                            {
+                              "justify-between": !!!isNaN(selectedVisa as any),
+                              "justify-end": !!isNaN(selectedVisa as any),
+                            }
+                          )}
+                        >
+                          {!!!isNaN(selectedVisa as any) && (
+                            <ChevronLeft onClick={handleBackClicked} />
+                          )}
                           <Select
                             value={selectedCurrency}
                             onValueChange={handleCurrencyChange}
                           >
-                            <SelectTrigger className="w-[180px] ml-auto">
+                            <SelectTrigger className="w-[180px]">
                               <SelectValue placeholder="Currency" />
                             </SelectTrigger>
                             <SelectContent>
                               {currencies.map((x, i) => (
-                                <SelectItem value={x.currency}>
+                                <SelectItem key={i} value={x.currency}>
                                   {x.currency}
                                 </SelectItem>
                               ))}
@@ -632,15 +654,15 @@ const VisaColumnsLayout = (props: Props) => {
                           </Select>
                         </div>
                       )}
-                      <div
-                        className={"w-[200%] flex "}
-                      >
+                      <div className={"w-full max-w-md m-auto flex overflow-hidden"}>
                         <div
                           className={clsx(
-                            "space-y-5 pb-5 px-3 flex-grow w-full max-w-md mx-auto",
+                            "space-y-5 pb-5 px-3 flex-grow w-full max-w-md mx-auto shrink-0",
                             {
-                              "-translate-x-[106%] transition-all duration-1000 ease-out":
+                              "-translate-x-full transition-all duration-1000 ease-out":
                                 !!selectedVisa,
+                              "translate-x-0 transition-all duration-1000 ease-out":
+                                !!!selectedVisa,
                             }
                           )}
                         >
@@ -659,22 +681,24 @@ const VisaColumnsLayout = (props: Props) => {
                         </div>
                         <div
                           className={clsx(
-                            "space-y-5 pb-5 px-3 flex-grow max-w-md mx-auto w-full",
+                            "space-y-5 pb-5 px-3 flex-grow max-w-md mx-auto w-full shrink-0",
                             {
-                              "-translate-x-[10%] transition-all duration-1000 ease-out":
+                              "-translate-x-full transition-all duration-1000 ease-out":
                                 !!selectedVisa,
+                              "translate-x-0 transition-all duration-1000 ease-out":
+                                !!!selectedVisa,
                             }
                           )}
                         >
-                          {typeof selectedVisa === "number"  && (
-                              <VisaCard
-                                x={visaObj as VisaOfferProps}
-                                setIsOpenModal={setIsOpenModal}
-                                setModalData={setModalData}
-                                selectedVisa={selectedVisa as number}
-                                i={selectedVisa as number}
-                              />
-                            )}
+                          {typeof selectedVisa === "number" && (
+                            <VisaCard
+                              x={visaObj as VisaOfferProps}
+                              setIsOpenModal={setIsOpenModal}
+                              setModalData={setModalData}
+                              selectedVisa={selectedVisa as number}
+                              i={selectedVisa as number}
+                            />
+                          )}
                         </div>
                       </div>
                     </>
