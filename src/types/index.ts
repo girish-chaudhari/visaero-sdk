@@ -230,8 +230,6 @@ export interface Document {
   document_required_for_routes?: string[];
 }
 
-
-
 export type Demand = {
   doc_id: string;
   doc_type: string;
@@ -259,3 +257,13 @@ export type DataType = {
   condition: Condition;
   demand: Demand[];
 };
+
+export interface AnonymousUserProps {
+  _id: string;
+  host: string;
+  user_type: string;
+  session_id: string;
+  role: string;
+  accessToken: string;
+  refreshToken: string;
+}

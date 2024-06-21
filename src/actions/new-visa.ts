@@ -141,3 +141,13 @@ export const getVisaDocumentsForOffer = async (data: {
   console.log("request from server>>", request.data);
   return request.data;
 };
+
+export const getServerSessionForAnonymousUser = async () => {
+  let request = await axios.get(API.getAnonymouseUser, {
+    params: {
+      host,
+    },
+  });
+  console.log("request from server>>", request.data);
+  return request.data;
+};

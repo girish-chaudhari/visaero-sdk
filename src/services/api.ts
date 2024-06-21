@@ -18,8 +18,11 @@ export const getSupportedCurrencies = "/visa-admin/getSupportedCurrencies";
 export const getVisaOffers = "/visa/getVisaOffers";
 export const getVisaDocuments = "/visa/getVisaDocuments";
 export const saveVisaForm = "/visa/getVisaOffers";
-export const uploadAndExtractDocuments = "/process-documents/uploadAndExtractDocument";
-export const createApplicationWithDocuments = "/visa/createApplicationWithDocuments";
+export const uploadAndExtractDocuments =
+  "/process-documents/uploadAndExtractDocument";
+export const createApplicationWithDocuments =
+  "/visa/createApplicationWithDocuments";
+export const getAnonymouseUser = "/qr-visa/registerAnonymousUser";
 
 const API = {
   getEnterpriseAccountHostDetails,
@@ -38,7 +41,8 @@ const API = {
   saveVisaForm,
   uploadAndExtractDocuments,
   createApplicationWithDocuments,
-  getVisaDocuments
+  getVisaDocuments,
+  getAnonymouseUser,
 };
 
 export default API;
