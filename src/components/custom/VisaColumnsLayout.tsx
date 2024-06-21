@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import {
   CurrencyProps,
+  DataType,
   Document,
   IPData,
   UploadedFile,
@@ -47,6 +48,8 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -90,7 +93,6 @@ type Props = {
 
 const VisaColumnsLayout = (props: Props) => {
   const { nationalities, ipData, supportedCurrencies: currencies } = props;
-  const queryClient = useQueryClient();
   const router = useRouter();
 
   const defaultCurrency = useMemo(() => {
@@ -114,6 +116,8 @@ const VisaColumnsLayout = (props: Props) => {
 
   console.log(opt);
   const [colLayout, setColLayout] = useState(1);
+  const [docInfo, setDocInfo] = useState<Document | undefined>();
+  const [isDocInfoOpenend, setIsDocInfoOpenend] = useState<boolean>(false);
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const abortControllerRef = useRef<AbortController[] | null>(null);
   const [selectedCurrency, setSelectedCurrency] =
@@ -378,6 +382,80 @@ const VisaColumnsLayout = (props: Props) => {
     [getVisaOffersDocuments]
   );
 
+  const conditionalDocsArr: DataType[] = useMemo(
+    () =>
+      getVisaOffersDocuments.data?.data == "success"
+        ? getVisaOffersDocuments.data?.dataobj?.evaluate
+        : [],
+    [getVisaOffersDocuments]
+  );
+
+  const copyToClipboard = useCallback(
+    (requireDocs: Document[], additionalDocs: DataType[] = []) => {
+      console.log("Documents", requireDocs, additionalDocs);
+
+      const createDocString = (
+        docs: (Document | DataType)[],
+        isDemand: boolean
+      ): string => {
+        return docs
+          ?.map((doc) => {
+            let displayName: string | undefined;
+            let shortDescription: string | undefined;
+            let description: string | undefined;
+
+            if (isDemand && "demand" in doc) {
+              displayName = doc.demand?.[0]?.doc_display_name;
+              shortDescription = doc.demand?.[0]?.doc_short_description;
+              description = doc.demand?.[0]?.doc_description;
+            } else {
+              displayName =
+                "doc_display_name" in doc ? doc.doc_display_name : "";
+              shortDescription =
+                "doc_short_description" in doc ? doc.doc_short_description : "";
+              description = "doc_description" in doc ? doc.doc_description : "";
+            }
+
+            return `Document Name: ${displayName}
+                 Short Description: ${shortDescription}
+                 Document Description: ${description}`;
+          })
+          .join("\r\n");
+      };
+
+      const copyText = () => {
+        const requiredDocsString = `=== Required Documents ===\r\n${createDocString(
+          requireDocs,
+          false
+        )}`;
+        const additionalDocsString =
+          additionalDocs.length > 0
+            ? `\r\n\r\n=== Additional Documents ===\r\n${createDocString(
+                additionalDocs,
+                true
+              )}`
+            : "";
+
+        const docCopyValue = `${requiredDocsString}${additionalDocsString}`;
+
+        const temp = document.createElement("textarea");
+        temp.value = docCopyValue;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand("copy");
+        document.body.removeChild(temp);
+
+        setIsCopied(true);
+        setTimeout(() => {
+          setIsCopied(false);
+        }, 2000);
+      };
+
+      copyText();
+    },
+    []
+  );
+
   const handleTravellingToChange = (
     opt:
       | unknown
@@ -609,8 +687,8 @@ const VisaColumnsLayout = (props: Props) => {
                 <table className="text-sm my-2">
                   {modalData?.insurance_details?.insurance_desc?.map(
                     (a, i: number) => (
-                      <tr key={i} className="text-sm">
-                        <td className="w-[50%] font-semibold">{a.name}:</td>
+                      <tr key={i} className="text-[0.8rem]">
+                        <td className="w-[50%] font-medium">{a.name}:</td>
                         <td className="w-[50%]">{a.value}</td>
                       </tr>
                     )
@@ -666,10 +744,12 @@ const VisaColumnsLayout = (props: Props) => {
                           )}
                         >
                           {!!!isNaN(selectedVisa as any) && (
-                            <ChevronLeft
-                              onClick={handleBackClicked}
-                              className="cursor-pointer"
-                            />
+                            <span className="hover:bg-gray-200 focus:bg-gray-400 rounded hover:text-gray-500">
+                              <ChevronLeft
+                                onClick={handleBackClicked}
+                                className="cursor-pointer"
+                              />
+                            </span>
                           )}
                           <Select
                             value={selectedCurrency}
@@ -752,6 +832,10 @@ const VisaColumnsLayout = (props: Props) => {
                                       <Clipboard
                                         onClick={() => {
                                           setIsCopied(true);
+                                          copyToClipboard(
+                                            docsArr,
+                                            conditionalDocsArr
+                                          );
                                           setTimeout(() => {
                                             setIsCopied(false);
                                           }, 1500);
@@ -770,14 +854,20 @@ const VisaColumnsLayout = (props: Props) => {
                               ) : (
                                 <>
                                   {!!docsArr?.length ? (
-                                    <ul className="list-inside marker:text-primary space-y-2">
+                                    <ul className="list-inside marker:text-primary space-y-2 px-2">
                                       <AlertDialog>
                                         {docsArr?.map((a: Document) => (
                                           <>
                                             <li className="text-xs font-semibold">
                                               <div className="flex justify-between items-center">
                                                 {a?.doc_display_name}{" "}
-                                                <Info className="h-4 w-4 cursor-pointer" />
+                                                <Info
+                                                  className="h-4 w-4 cursor-pointer"
+                                                  onClick={() => {
+                                                    setIsDocInfoOpenend(true);
+                                                    setDocInfo(a);
+                                                  }}
+                                                />
                                               </div>
 
                                               <div className="text-[10px] font-normal">
@@ -793,27 +883,24 @@ const VisaColumnsLayout = (props: Props) => {
                                   )}
                                 </>
                               )}
-                              {/* <AlertDialog>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>
-                                      {a?.doc_display_name}
-                                      <small>{a?.doc_short_description}</small>
-                                    </AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      {a?.doc_description}
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>
-                                      Cancel
-                                    </AlertDialogCancel>
-                                    <AlertDialogAction>
-                                      Continue
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog> */}
+                              <Dialog
+                                onOpenChange={setIsDocInfoOpenend}
+                                open={isDocInfoOpenend}
+                              >
+                                <DialogContent className="sm:max-w-[425px] sm:min-h-56 grid-rows-[min-content]">
+                                  <DialogHeader>
+                                    <DialogTitle>
+                                      {docInfo?.doc_display_name}
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                      {docInfo?.doc_short_description}
+                                    </DialogDescription>
+                                  </DialogHeader>
+                                  <p className="text-xs text-slate-500">
+                                    {docInfo?.doc_description}
+                                  </p>
+                                </DialogContent>
+                              </Dialog>
                             </VisaCard>
                           )}
                         </div>

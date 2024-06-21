@@ -1,15 +1,21 @@
 import { cn } from "@/lib/utils";
 import type { Metadata } from "next";
-import { Inter as FontSans } from "next/font/google";
+import { Inter as FontSans, Roboto as FontRoboto } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/layout/providers";
 import { getServerSession } from "next-auth";
 import { Toaster } from "@/components/ui/toaster";
 
+// const fontRoboto = FontRoboto({
+//   subsets: ["latin"],
+//   variable: "--font-sans",
+//   weight:["100","300","400","500","700","900"]
+// });
 
 const fontSans = FontSans({
   subsets: ["latin"],
   variable: "--font-sans",
+  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
 export const metadata: Metadata = {
   title: "Visaero SDK Portal",

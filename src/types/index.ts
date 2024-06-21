@@ -229,3 +229,33 @@ export interface Document {
   doc_snap: DocSnap[];
   document_required_for_routes?: string[];
 }
+
+
+
+export type Demand = {
+  doc_id: string;
+  doc_type: string;
+  doc_display_name: string;
+  doc_short_description: string;
+  doc_description: string;
+  doc_snap: DocSnap[];
+  document_required_for_routes?: string[];
+};
+
+export type Rule = {
+  id: string;
+  parameter: string;
+  value: string;
+  operator: string;
+};
+
+export type Condition = {
+  id: string;
+  rules: Rule[];
+  combinator: string;
+};
+
+export type DataType = {
+  condition: Condition;
+  demand: Demand[];
+};
