@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AnonymousUserProps,
   CurrencyProps,
   DataType,
   Document,
@@ -34,7 +35,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Option } from "../ui/autocomplete";
 import AutoSelect from "../ui/autoselect";
 import { Button } from "../ui/button";
@@ -71,12 +72,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import axios from "@/config";
+import axios, { axiosInstance } from "@/config";
 import API from "@/services/api";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Dragger from "../Dragger";
 import { toast } from "../ui/use-toast";
+import { getSession, signIn } from "next-auth/react";
 
 interface Nationality {
   name: string;
@@ -89,10 +91,16 @@ type Props = {
   nationalities: Nationality[];
   ipData: IPData | null;
   supportedCurrencies: CurrencyProps[] | [];
+  credentials?: AnonymousUserProps;
 };
 
 const VisaColumnsLayout = (props: Props) => {
-  const { nationalities, ipData, supportedCurrencies: currencies } = props;
+  const {
+    nationalities,
+    ipData,
+    supportedCurrencies: currencies,
+    credentials,
+  } = props;
   const router = useRouter();
 
   const defaultCurrency = useMemo(() => {
@@ -1001,7 +1009,7 @@ const VisaColumnsLayout = (props: Props) => {
                                         )
                                       }
                                     >
-                                      Continue
+                                      Confirm
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
@@ -1043,9 +1051,11 @@ const VisaColumnsLayout = (props: Props) => {
             onClick={() =>
               createApplicationWithDocuments.mutate(undefined, {
                 onSuccess(data, variables, context) {
-                  console.log(data);
+                  console.log('application created >>', data);
                   if (data?.data == "success") {
-                    router.push(path + "/review");
+                    // router.push(path + "/review");
+                    router.push(path + "/review?application_id=" + data?.dataobj?._id);
+
                     // success toast
                     toast({
                       title: "Application created successfully",

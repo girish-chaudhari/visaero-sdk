@@ -1,6 +1,8 @@
 import { NextAuthOptions } from "next-auth";
 import GithubProvider from "next-auth/providers/github";
 import CredentialProvider from "next-auth/providers/credentials";
+import axios from "@/config";
+import API from "@/services/api";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
@@ -18,17 +20,24 @@ export const authOptions: NextAuthOptions = {
       },
       // @ts-expect-error
       async authorize(credentials, req) {
+       const request = await axios.get(API.getAnonymouseUser, {
+          params: {
+            host: "visaero",
+          },
+        });
+        console.log("request from auth", request.data)
+        const userData = request?.data?.data === 'success' ? request.data.dataobj : null;
         // const user = { id: "1", name: "John", email: credentials?.email };
-        if (credentials) {
+        if (userData) {
           // Any object returned will be saved in `user` property of the JWT
           return {
-            user_id: credentials.user_id,
-            host: credentials.host,
-            user_type: credentials.user_type,
-            session_id: credentials.session_id,
-            role_name: credentials.role_name,
-            access_token: credentials.access_token,
-            refresh_token: credentials.refresh_token,
+            user_id: userData.user_id,
+            host: userData.host,
+            user_type: userData.user_type,
+            session_id: userData.session_id,
+            role_name: userData.role_name,
+            access_token: userData.access_token,
+            refresh_token: userData.refresh_token,
           };
         } else {
           // If you return null then an error will be displayed advising the user to check their details.

@@ -5,8 +5,8 @@ import {
   getSupportedCurrencies,
 } from "@/actions/new-visa";
 import VisaColumnsLayout from "@/components/custom/VisaColumnsLayout";
+import { axiosInstance } from "@/config";
 import { AnonymousUserProps, CurrencyProps } from "@/types";
-import { signIn } from "next-auth/react";
 
 // Define a type for the props
 type Props = {};
@@ -15,21 +15,20 @@ type Props = {};
 const Page = async (props: Props) => {
   const data = await getServerSessionForAnonymousUser();
   const dataObj: AnonymousUserProps = data.dataobj;
-  console.log("data >>", dataObj)
-  const credentials = {
-    user_id: dataObj?._id,
-    host: dataObj?.host,
-    user_type: dataObj?.user_type,
-    session_id: dataObj?.session_id,
-    role_name: dataObj?.role,
-    access_token: dataObj?.accessToken,
-    refresh_token: dataObj?.refreshToken,
-  };
+  console.log("data >>", dataObj);
+  axiosInstance.interceptors.request.use(
+    async (config) => {
+      console.log('works interceptor', dataObj)
+      if (dataObj?.accessToken) {
+        config.headers.Authorization = dataObj.accessToken;
+      }
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error);
+    }
+  );
 
-  // await signIn("credentials", {
-  //   redirect: false,
-  //   ...credentials,
-  // });
   // Fetch data
   const ipData = await getIpData();
   const nationalityResp = await getNationalities();
@@ -48,8 +47,9 @@ const Page = async (props: Props) => {
       <VisaColumnsLayout
         nationalities={nationalityResp}
         ipData={ipData}
+        // credentials={credentials}
+        credentials={dataObj}
         supportedCurrencies={currencyArr}
-        // userSession={data?.dataobj ?? {}} // Pass user session data
       />
     </div>
   );
