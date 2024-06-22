@@ -1051,10 +1051,9 @@ const VisaColumnsLayout = (props: Props) => {
             onClick={() =>
               createApplicationWithDocuments.mutate(undefined, {
                 onSuccess(data, variables, context) {
-                  console.log('application created >>', data);
+                  console.log("application created >>", data);
                   if (data?.data == "success") {
-                    // router.push(path + "/review");
-                    router.push(path + "/review?application_id=" + data?.dataobj?._id);
+                    router.push(path + "/review?application_id=" + data?.dataobj?._id+ "&travelling_to_identity="+ data?.dataobj?.travelling_to_identity);
 
                     // success toast
                     toast({
