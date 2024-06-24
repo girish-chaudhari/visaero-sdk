@@ -22,6 +22,7 @@ const onRequest = (
   const source = axiosConfig.CancelToken.source();
   pendingRequests.push(source);
   config.cancelToken = source.token;
+  console.log("config >>", config)
   return config;
 };
 

@@ -79,6 +79,7 @@ import { useRouter } from "next/navigation";
 import Dragger from "../Dragger";
 import { toast } from "../ui/use-toast";
 import { getSession, signIn } from "next-auth/react";
+import { HOST } from "@/actions";
 
 interface Nationality {
   name: string;
@@ -191,6 +192,7 @@ const VisaColumnsLayout = (props: Props) => {
         currency: selectedCurrency,
         base_currency_symbol: selectedCurrency,
         visa_lancer_code: null,
+        host: "visaero",
         documentsArray: uploadedFiles,
         nationality: nationality?.value as string,
         travelling_to: travellingTo?.value as string,
