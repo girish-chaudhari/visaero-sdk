@@ -23,7 +23,7 @@ import {
   UploadedFile,
   VisaOfferProps,
 } from "@/types";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import {
   Check,
@@ -35,7 +35,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { type Option } from "../ui/autocomplete";
 import AutoSelect from "../ui/autoselect";
 import { Button } from "../ui/button";
@@ -50,7 +50,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -72,14 +71,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import axios, { axiosInstance } from "@/config";
+import axios from "@/config";
 import API from "@/services/api";
+import { addDays } from "date-fns";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Dragger from "../Dragger";
 import { toast } from "../ui/use-toast";
-import { getSession, signIn } from "next-auth/react";
-import { HOST } from "@/actions";
 
 interface Nationality {
   name: string;
@@ -124,7 +122,13 @@ const VisaColumnsLayout = (props: Props) => {
   );
 
   console.log(opt);
+  const fromDate = addDays(new Date(), 1);
+  const toDate = addDays(fromDate, 6);
   const [colLayout, setColLayout] = useState(1);
+  const [selectedDates, setSelectedDates] = useState({
+    from: fromDate,
+    to: toDate,
+  });
   const [docInfo, setDocInfo] = useState<Document | undefined>();
   const [isDocInfoOpenend, setIsDocInfoOpenend] = useState<boolean>(false);
   const [isCopied, setIsCopied] = useState<boolean>(false);
@@ -199,8 +203,8 @@ const VisaColumnsLayout = (props: Props) => {
         travelling_to_country: travellingTo?.cioc as string,
         travelling_to_identity: traveling_to_identity, //travellingTo?.identity as string,
         application_type: "qr-visa",
-        journey_start_date: "",
-        journey_end_date: "",
+        journey_start_date: selectedDates.from.toISOString(),
+        journey_end_date: selectedDates.to.toISOString(), // get the format of date like 2024-06-30T03:21:30.907Z
         visa_category: visaObj?.visa_category,
         visa_code: visaObj?.visa_details.visa_code,
         visa_entry_type: visaObj?.entry_type,
@@ -210,7 +214,9 @@ const VisaColumnsLayout = (props: Props) => {
         total_days: visaObj?.visa_details.duration_days,
         is_visaero_insurance_bundled: !!visaObj?.is_visaero_insurance_bundled,
         insurance_details: visaObj?.insurance_details,
-        user_id: "66628162bec3f78f84b6d5d0",
+        "visa_processing_type": visaObj?.processing_type,
+        "visa_type": visaObj?.visa_type,
+        user_id: "6678e63aeed8c741ea8612b6",
         platform: "web",
         user_type: "customer",
         application_created_by_user: "customer_user",
@@ -604,7 +610,10 @@ const VisaColumnsLayout = (props: Props) => {
         />
       </div>
       <div className={`my-2`}>
-        <DatePickerWithRange />
+        <DatePickerWithRange
+          selectedDates={selectedDates}
+          onSelect={setSelectedDates}
+        />
       </div>
     </>
   );
@@ -1055,7 +1064,13 @@ const VisaColumnsLayout = (props: Props) => {
                 onSuccess(data, variables, context) {
                   console.log("application created >>", data);
                   if (data?.data == "success") {
-                    router.push(path + "/review?application_id=" + data?.dataobj?._id+ "&travelling_to_identity="+ data?.dataobj?.travelling_to_identity);
+                    router.push(
+                      path +
+                        "/review?application_id=" +
+                        data?.dataobj?._id +
+                        "&travelling_to_identity=" +
+                        data?.dataobj?.travelling_to_identity
+                    );
 
                     // success toast
                     toast({

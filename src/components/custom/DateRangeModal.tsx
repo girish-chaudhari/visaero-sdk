@@ -1,18 +1,13 @@
 "use client";
 
-import * as React from "react";
-import { addDays, addMonths, addYears, format } from "date-fns";
+import { addDays, addYears, format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
-import { DateRange } from "react-day-picker";
+import * as React from "react";
+import { DateRange, SelectRangeEventHandler } from "react-day-picker";
 
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -22,14 +17,34 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 
+export interface SelectedDates {
+  from: Date;
+  to: Date;
+}
+interface Props {
+  className?: string;
+  selectedDates?: SelectedDates;
+  onSelect?: (dates: SelectedDates) => void;
+}
+
 export const DatePickerWithRange = React.memo(
-  ({ className }: React.HTMLAttributes<HTMLDivElement>) => {
+  ({ className, selectedDates, onSelect }: Props) => {
     const fromDate = addDays(new Date(), 1);
     const toDate = addYears(fromDate, 25);
-    const [date, setDate] = React.useState<DateRange | undefined>({
-      from: fromDate,
-      to: addDays(fromDate, 6),
-    });
+    const [date, setDate] = React.useState<DateRange | undefined>(
+      selectedDates || {
+        from: fromDate,
+        to: addDays(fromDate, 6),
+      }
+    );
+
+    const handleSelect = (date: any) => {
+      setDate(date as DateRange);
+      // check if date.from and date.to is valid and not equal
+      if (date.from && date.to && date.from.getTime() !== date.to.getTime()) {
+        onSelect?.(date as SelectedDates);
+      }
+    };
 
     // console.log(date)
 
@@ -73,12 +88,14 @@ export const DatePickerWithRange = React.memo(
                 mode="range"
                 defaultMonth={date?.from}
                 selected={date}
-                onSelect={setDate}
+                onSelect={handleSelect}
                 numberOfMonths={2}
               />
             </div>
             <DialogFooter className="p-3">
-              <Button variant={'secondary'} onClick={() => setDate(undefined)}>Clear</Button>
+              <Button variant={"secondary"} onClick={() => setDate(undefined)}>
+                Clear
+              </Button>
               <DialogTrigger asChild>
                 <Button variant={"destructive"}>Save</Button>
               </DialogTrigger>

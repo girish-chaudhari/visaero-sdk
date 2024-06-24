@@ -16,17 +16,17 @@ interface VisaFormResponse {
 
 export const getReviewVisaForm = cache(
   async ({
-    application_id,
+    applicant_id,
     travelling_to_identity,
   }: {
-    application_id: string;
+    applicant_id: string;
     travelling_to_identity: string;
   }): Promise<any | null> => {
     try {
       const response = await axios.post<VisaFormResponse>(
         "/visa/getReviewFormForApplicant",
         {
-          applicant_id: application_id,
+          applicant_id: "6678e63aeed8c741ea8612b6",
           name: "visa_form_template",
           travelling_to_identity: travelling_to_identity,
           structure: "new",
